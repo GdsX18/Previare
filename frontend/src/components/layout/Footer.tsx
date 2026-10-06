@@ -185,7 +185,7 @@ export default function Footer() {
                   </a>
                 </p>
                 <p className="text-xs text-white/50 pt-1">
-                  São Paulo, SP — Atendimento Nacional
+                  Rio de Janeiro, RJ — Atendimento Nacional
                 </p>
 
                 {/* Ícones de redes sociais discretos estilo IWC */}
