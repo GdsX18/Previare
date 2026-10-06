@@ -1,0 +1,48 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ContactStatus {
+  PENDING
+  IN_ANALYSIS
+  CONTACTED
+  SCHEDULED
+  CONVERTED
+  ARCHIVED
+}
+
+enum BenefitType {
+  PLANEJAMENTO_PREVIDENCIARIO
+  APOSENTADORIA_TEMPO_CONTRIBUICAO
+  APOSENTADORIA_IDADE
+  APOSENTADORIA_ESPECIAL
+  REVISAO_BENEFICIO
+  DIAGNOSTICO_CNIS
+  AUXILIO_INCAPACIDADE
+  OUTRO
+}
+
+model PreviareContact {
+  id                    String        @id @default(cuid())
+  nome                  String
+  email                 String
+  telefone              String
+  tipoBeneficio         BenefitType   @default(PLANEJAMENTO_PREVIDENCIARIO)
+  status                ContactStatus @default(PENDING)
+  tempoContribuicaoAnos Int?
+  mensagem              String?
+  origem                String        @default("landing-page")
+  ipOrigem              String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("previare_contacts")
+}

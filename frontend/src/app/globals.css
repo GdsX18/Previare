@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@theme {
+  --color-brand-light: #6FB370;
+  --color-brand-medium: #5FA361;
+  --color-brand-base: #4F9352;
+  --color-brand-dark: #3F8344;
+  --color-brand-deep: #2F7335;
+
+  --color-silk-deep: #03120E;
+  --color-silk-emerald: #0E7C5A;
+  --color-silk-lime: #7CE577;
+  --color-silk-cream: #F4FFC7;
+
+  --color-neutral-offwhite: #F9FAF9;
+  --color-neutral-subtle: #F4F6F4;
+  --color-neutral-graphite: #0D150E;
+  --color-neutral-dark: #121A13;
+
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-modulus: var(--font-sans);
+}
+
+:root {
+  --background: #03120E;
+  --foreground: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: #7CE577;
+  color: #03120E;
+}
