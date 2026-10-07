@@ -67,9 +67,8 @@ export default function AboutSection() {
         end: () => `+=${Math.round(totalScroll * 1.6)}`,
         invalidateOnRefresh: true,
         // Camadas de GPU só enquanto a seção está pinada
-        onToggle: willChangeWhileActive(
-          [container, ...items, watermarkRef.current].filter((el): el is HTMLElement => el !== null)
-        ),
+        // (a marca d'água já tem camada própria e permanente)
+        onToggle: willChangeWhileActive([container, ...items]),
       },
     });
 
@@ -163,10 +162,11 @@ export default function AboutSection() {
       data-theme="light"
       className="relative w-full h-screen overflow-hidden bg-[#EAF2EB] flex flex-col justify-end pb-10 sm:pb-14 md:pb-16 items-end px-6 sm:px-12 md:px-20 lg:px-32 z-20 select-none pt-24 md:pt-32"
     >
-      {/* Marca d'água monumental verde escura (#2F7335) com opacidade controlada */}
+      {/* Marca d'água monumental (#2F7335): camada de GPU própria e permanente, sem
+          filtros — o parallax só move a textura já rasterizada, sem repintar o SVG */}
       <div
         ref={watermarkRef}
-        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center"
+        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center will-change-transform transform-gpu"
         aria-hidden="true"
       >
         <Image
@@ -174,7 +174,7 @@ export default function AboutSection() {
           alt="Previare Marca d'água"
           width={940}
           height={940}
-          className="w-full h-full object-contain filter blur-[0.3px]"
+          className="w-full h-full object-contain"
         />
       </div>
 

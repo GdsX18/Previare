@@ -57,13 +57,22 @@ export default function SilkBackground() {
       });
       resizeObserver.observe(canvas);
 
-      // Loop só existe com a seção Hero na viewport: fora dela o rAF é cancelado
-      const stopVisibility = observeVisibility(wrapper.parentElement ?? wrapper, (visible) =>
-        host.post({ type: 'running', running: visible })
+      // Loop só existe com a seção Hero na viewport: fora dela o rAF é cancelado.
+      // Sem margem extra: o shader para assim que a Hero sai, antes de o pin de
+      // "A Marca & O Propósito" começar. A camada fixa também deixa de ser
+      // composta (visibility: hidden), pois as seções seguintes a cobrem.
+      const stopVisibility = observeVisibility(
+        wrapper.parentElement ?? wrapper,
+        (visible) => {
+          host.post({ type: 'running', running: visible });
+          wrapper.style.visibility = visible ? '' : 'hidden';
+        },
+        '0px'
       );
 
       teardown = () => {
         stopVisibility();
+        wrapper.style.visibility = '';
         resizeObserver.disconnect();
         release();
       };
