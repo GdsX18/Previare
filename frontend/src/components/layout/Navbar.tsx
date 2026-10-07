@@ -106,7 +106,8 @@ export function Navbar() {
               alt="Previare - Previdência, Planejamento e Proximidade"
               className="h-10 sm:h-11 md:h-12 lg:h-[3.25rem] w-auto object-contain transition-opacity duration-200 group-hover:opacity-90"
               height={52}
-              priority
+              preload
+              fetchPriority="high"
               src="/images/logos/previare - LOGOaa.png"
               width={220}
             />

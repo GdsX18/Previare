@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { gsap, useGSAP } from '@/lib/gsap';
+import { deferScrollSetup } from '@/lib/gsap';
 import { scrollToSection } from '@/lib/smoothScroll';
 import { cn } from '@/lib/utils';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
@@ -60,49 +60,52 @@ export default function NextStepSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const watermarkRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
+  // Setup diferido para após a hidratação (prioriza FCP/LCP), com GSAP
+  // carregado sob demanda; o revert desfaz tudo ao desmontar.
+  useEffect(
+    () =>
+      deferScrollSetup(({ gsap }) => {
+        // matchMedia com escopo na seção: seletores e revert ficam contidos nela
+        const mm = gsap.matchMedia(sectionRef.current ?? undefined);
 
-      mm.add('(prefers-reduced-motion: no-preference)', () => {
-        // Entrada suave de cada card conforme a rolagem
-        gsap.utils.toArray<HTMLElement>('.next-step-card').forEach((card, idx) => {
-          gsap.fromTo(
-            card,
-            { opacity: 0, y: 70 + idx * 10 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 1.1,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: card,
-                start: 'top 88%',
-                toggleActions: 'play none none reverse',
-              },
-            }
-          );
-        });
-
-        // Parallax sutil na marca d'água
-        if (watermarkRef.current && sectionRef.current) {
-          gsap.to(watermarkRef.current, {
-            y: -120,
-            rotation: -2,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: 'top bottom',
-              end: 'bottom top',
-              scrub: 1,
-            },
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+          // Entrada suave de cada card conforme a rolagem
+          gsap.utils.toArray<HTMLElement>('.next-step-card').forEach((card, idx) => {
+            gsap.fromTo(
+              card,
+              { opacity: 0, y: 70 + idx * 10 },
+              {
+                opacity: 1,
+                y: 0,
+                duration: 1.1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                  trigger: card,
+                  start: 'top 88%',
+                  toggleActions: 'play none none reverse',
+                },
+              }
+            );
           });
-        }
-      });
 
-      return () => mm.revert();
-    },
-    { scope: sectionRef }
+          // Parallax sutil na marca d'água
+          if (watermarkRef.current && sectionRef.current) {
+            gsap.to(watermarkRef.current, {
+              y: -120,
+              rotation: -2,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: sectionRef.current,
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: 1,
+              },
+            });
+          }
+        });
+        return () => mm.revert();
+      }),
+    []
   );
 
   const { openSpecialistModal } = useSpecialistModal();

@@ -8,33 +8,35 @@ const serifFont = Playfair_Display({
   variable: "--font-serif",
   subsets: ["latin"],
   display: "swap",
+  preload: true,
 });
 
 const modulusFont = localFont({
   src: [
     {
-      path: "../../public/fonts/Modulus-Medium.ttf",
+      path: "../../public/fonts/Modulus-Medium.woff2",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Modulus-Medium.ttf",
+      path: "../../public/fonts/Modulus-Medium.woff2",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Modulus-Bold.otf",
+      path: "../../public/fonts/Modulus-Bold.woff2",
       weight: "700",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Modulus-Bold.otf",
+      path: "../../public/fonts/Modulus-Bold.woff2",
       weight: "800",
       style: "normal",
     },
   ],
   variable: "--font-sans",
   display: "swap",
+  preload: true,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://previare.com.br";

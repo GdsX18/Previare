@@ -1371,6 +1371,7 @@ export default function SimulatorSection() {
               <button
                 type="button"
                 onClick={handleExport}
+                data-specialist-cta
                 className="w-full py-4 px-6 text-sm sm:text-base font-semibold text-white bg-[#0E7C5A] hover:bg-[#0B6549] rounded-xl flex items-center justify-center gap-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] focus:ring-offset-2 cursor-pointer active:scale-[0.99]"
               >
                 <span>

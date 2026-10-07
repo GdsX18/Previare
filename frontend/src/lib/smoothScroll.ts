@@ -1,11 +1,14 @@
-import { gsap, ScrollTrigger } from './gsap';
+import { loadGsap, type GsapModules } from './gsap';
 
-export function scrollToSection(
-  target: string,
-  options: { offset?: number; duration?: number; onComplete?: () => void } = {}
-) {
+type ScrollOptions = { offset?: number; duration?: number; onComplete?: () => void };
+
+export function scrollToSection(target: string, options: ScrollOptions = {}) {
   if (typeof window === 'undefined') return;
+  // GSAP é carregado sob demanda (normalmente já está em cache após o idle)
+  void loadGsap().then((modules) => animateScroll(modules, target, options));
+}
 
+function animateScroll({ gsap, ScrollTrigger }: GsapModules, target: string, options: ScrollOptions) {
   const { offset = 85, duration = 1.1, onComplete } = options;
   const cleanId = target.replace(/^[/#]+/, '');
 
