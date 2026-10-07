@@ -163,6 +163,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${serifFont.variable} ${modulusFont.variable} h-full scroll-smooth antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <script
@@ -170,7 +171,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="bg-transparent text-white overflow-x-hidden antialiased selection:bg-[#7CE577] selection:text-[#03120E]">
+      <body
+        suppressHydrationWarning
+        className="bg-transparent text-white overflow-x-hidden antialiased selection:bg-[#7CE577] selection:text-[#03120E]"
+      >
         <SpecialistModalProvider>{children}</SpecialistModalProvider>
       </body>
     </html>
