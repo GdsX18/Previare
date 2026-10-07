@@ -10,10 +10,11 @@ import { scrollToSection } from '@/lib/smoothScroll';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 
 const NAV_LINKS = [
-  { label: 'Sobre a Marca', href: '#sobre' },
-  { label: 'Soluções Técnicas', href: '#servicos' },
-  { label: 'Simulador Atuarial', href: '#simulador' },
+  { label: 'Sobre', href: '#sobre' },
+  { label: 'Serviços', href: '#servicos' },
+  { label: 'Simulador', href: '#simulador' },
   { label: 'Diferenciais', href: '#diferenciais' },
+  { label: 'Dúvidas', href: '#duvidas' },
   { label: 'Próximo Passo', href: '#proximo-passo' },
 ];
 
@@ -96,7 +97,7 @@ export function Navbar() {
       >
         <div className="w-full max-w-[1720px] mx-auto px-6 sm:px-10 md:px-14 lg:px-16 h-20 sm:h-24 flex items-center justify-between">
           {/* Lado Esquerdo: Logomarca Completa Oficial Ampliada e Alinhada */}
-          <a
+          <Link
             className="flex items-center group shrink-0 cursor-pointer"
             href="/"
             onClick={(e) => handleLinkClick(e, '/')}
@@ -111,7 +112,7 @@ export function Navbar() {
               src="/images/logos/previare - LOGOaa.png"
               width={220}
             />
-          </a>
+          </Link>
 
           {/* Centro: Links Centrais Desktop com Hitbox Ampla e Ação Imediata */}
           <nav className="hidden lg:flex items-center gap-2 xl:gap-6">

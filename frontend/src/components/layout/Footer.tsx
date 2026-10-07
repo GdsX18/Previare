@@ -5,22 +5,55 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Check, CheckCircle2 } from 'lucide-react';
 import { scrollToSection } from '@/lib/smoothScroll';
+import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
+import { SITE_CONFIG } from '@/lib/siteConfig';
+import {
+  CONTACT_LIMITS,
+  EMAIL_PATTERN,
+  formatBrazilianPhone,
+  onlyDigits,
+  type ContactSubject,
+  type SpecialistContactPayload,
+} from '@/lib/specialistContact';
+
+const FOOTER_SERVICES = [
+  'Planejamento Previdenciário',
+  'Auditoria de CNIS & Vínculos',
+  'Aposentadoria Especial & PPP',
+  'Revisão de Benefício Concedido',
+  'Simulações Matemáticas',
+  'Diagnóstico Geral Completo',
+] as const;
+
+// Assunto enviado à rota /api/contato conforme o primeiro serviço marcado
+const SUBJECT_BY_SERVICE: Record<string, ContactSubject> = {
+  'Planejamento Previdenciário': 'Planejamento Previdenciário',
+  'Auditoria de CNIS & Vínculos': 'Auditoria de CNIS e Vínculos',
+  'Aposentadoria Especial & PPP': 'Tempo Especial & Insalubridade (PPP)',
+  'Revisão de Benefício Concedido': 'Revisão de Aposentadoria Concedida',
+  'Simulações Matemáticas': 'Planejamento Previdenciário',
+  'Diagnóstico Geral Completo': 'Auditoria de CNIS e Vínculos',
+};
+
+const INITIAL_FORM = {
+  name: '',
+  email: '',
+  phone: '',
+  careerStage: 'Próximo à Aposentadoria (50+ anos)',
+  source: 'Cliente Atual / Indicação',
+  message: '',
+  services: [] as string[],
+  scheduleSession: false,
+  privacyAgreed: false,
+  website: '',
+};
 
 export default function Footer() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    careerStage: 'Próximo à Aposentadoria (50+ anos)',
-    source: 'Cliente Atual / Indicação',
-    message: '',
-    services: [] as string[],
-    scheduleSession: false,
-    privacyAgreed: false,
-  });
-
+  const [formData, setFormData] = useState(INITIAL_FORM);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { openSpecialistModal } = useSpecialistModal();
 
   const handleServiceToggle = (service: string) => {
     setFormData((prev) => ({
@@ -31,47 +64,71 @@ export default function Footer() {
     }));
   };
 
+  const validate = (): string | null => {
+    if (formData.name.trim().length < 3) return 'Por favor, escreva o seu nome completo.';
+    if (!EMAIL_PATTERN.test(formData.email.trim()))
+      return 'Confira o e-mail. Ele precisa ter o símbolo @, por exemplo: maria@gmail.com';
+    const digits = onlyDigits(formData.phone).length;
+    if (digits < CONTACT_LIMITS.phoneDigitsMin || digits > CONTACT_LIMITS.phoneDigitsMax)
+      return 'Confira o telefone. Ele precisa ter o DDD, por exemplo: (21) 91234-5678';
+    if (!formData.privacyAgreed) return 'Para prosseguir, aceite a Política de Privacidade.';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.privacyAgreed) {
-      alert('Por favor, aceite a Política de Privacidade para prosseguir.');
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    // Todo o contexto do formulário segue no relato, no mesmo contrato do modal
+    const message = [
+      `Momento profissional: ${formData.careerStage}`,
+      `Serviços de interesse: ${formData.services.length ? formData.services.join(', ') : 'não informado'}`,
+      `Como conheceu: ${formData.source}`,
+      `Deseja agendar sessão de alinhamento: ${formData.scheduleSession ? 'Sim' : 'Não'}`,
+      formData.message.trim() ? `\nRelato: ${formData.message.trim()}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, CONTACT_LIMITS.message);
+
+    const payload: SpecialistContactPayload = {
+      subject: SUBJECT_BY_SERVICE[formData.services[0]] ?? 'Outro Assunto Previdenciário',
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      message,
+      origin: 'Footer · Formulário de contato',
+      website: formData.website,
+    };
+
+    setError(null);
     setIsSubmitting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      await fetch(`${apiUrl}/leads`, {
+      const res = await fetch('/api/contato', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-        }),
-      }).catch(() => {
-        // Fallback silencioso para continuidade do fluxo
+        body: JSON.stringify(payload),
       });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        setError(data?.error ?? 'Não foi possível enviar agora. Tente novamente em instantes.');
+        return;
+      }
+      setSubmitted(true);
     } catch {
-      // Sem interrupção de fluxo para o usuário
+      setError('Sem conexão no momento. Verifique sua internet e tente novamente.');
     } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      careerStage: 'Próximo à Aposentadoria (50+ anos)',
-      source: 'Cliente Atual / Indicação',
-      message: '',
-      services: [],
-      scheduleSession: false,
-      privacyAgreed: false,
-    });
+    setFormData(INITIAL_FORM);
+    setError(null);
     setSubmitted(false);
   };
 
@@ -81,6 +138,10 @@ export default function Footer() {
       scrollToSection(href, { offset: 85 });
     }
   };
+
+  const legalLine = [SITE_CONFIG.legalName, SITE_CONFIG.oabRegistration, SITE_CONFIG.cnpj && `CNPJ ${SITE_CONFIG.cnpj}`]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <>
@@ -111,9 +172,15 @@ export default function Footer() {
         id="contato"
         className="footer-clean-root relative w-full overflow-hidden text-white select-none bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#0E4D34] via-[#062417] to-[#020C07]"
       >
+        {/* Costura com a seção anterior: o topo parte do mesmo tom em que o Próximo Passo termina */}
+        <div
+          className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-ink-deep to-transparent pointer-events-none z-[1]"
+          aria-hidden="true"
+        />
+
         {/* Focos de luz difusa para profundidade aveludada e reflexo luminoso */}
         <div
-          className="absolute -top-32 right-10 w-[750px] h-[750px] bg-[radial-gradient(circle,rgba(14,124,90,0.38)_0%,transparent_70%)] blur-[140px] pointer-events-none"
+          className="absolute top-24 right-10 w-[750px] h-[750px] bg-[radial-gradient(circle,rgba(14,124,90,0.38)_0%,transparent_70%)] blur-[140px] pointer-events-none"
           aria-hidden="true"
         />
         <div
@@ -168,30 +235,34 @@ export default function Footer() {
                 <span className="text-[11px] tracking-[0.25em] text-white/50 uppercase block font-medium">
                   Contato Direto
                 </span>
-                <p className="text-sm sm:text-base text-white/90 font-light">
+                <p className="text-base text-white/90 font-light">
                   <a
-                    href="mailto:contato@previare.com.br"
+                    href={`mailto:${SITE_CONFIG.email}`}
                     className="hover:text-[#7CE577] transition-colors"
                   >
-                    contato@previare.com.br
+                    {SITE_CONFIG.email}
                   </a>
                 </p>
-                <p className="text-sm sm:text-base text-white/90 font-light">
-                  <a
-                    href="tel:+551140000000"
-                    className="hover:text-[#7CE577] transition-colors"
-                  >
-                    (11) 4000-0000
-                  </a>
-                </p>
-                <p className="text-xs text-white/50 pt-1">
-                  Rio de Janeiro, RJ — Atendimento Nacional
+                {SITE_CONFIG.phoneDisplay && SITE_CONFIG.phoneE164 && (
+                  <p className="text-base text-white/90 font-light">
+                    <a
+                      href={`tel:+${SITE_CONFIG.phoneE164}`}
+                      className="hover:text-[#7CE577] transition-colors"
+                    >
+                      {SITE_CONFIG.phoneDisplay}
+                    </a>
+                  </p>
+                )}
+                <p className="text-sm text-white/60 pt-1">
+                  {SITE_CONFIG.city}, {SITE_CONFIG.state} — {SITE_CONFIG.serviceArea}
                 </p>
 
-                {/* Ícones de redes sociais discretos estilo IWC */}
+                {/* Ícones de redes sociais discretos estilo IWC (só perfis oficiais configurados) */}
+                {(SITE_CONFIG.social.linkedin || SITE_CONFIG.social.instagram) && (
                 <div className="flex items-center gap-3 pt-2">
+                  {SITE_CONFIG.social.linkedin && (
                   <a
-                    href="https://linkedin.com"
+                    href={SITE_CONFIG.social.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-8 h-8 rounded border border-white/20 hover:border-[#7CE577] flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.04] transition-all text-xs font-semibold"
@@ -199,8 +270,10 @@ export default function Footer() {
                   >
                     in
                   </a>
+                  )}
+                  {SITE_CONFIG.social.instagram && (
                   <a
-                    href="https://instagram.com"
+                    href={SITE_CONFIG.social.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-8 h-8 rounded border border-white/20 hover:border-[#7CE577] flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.04] transition-all"
@@ -218,7 +291,9 @@ export default function Footer() {
                       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                     </svg>
                   </a>
+                  )}
                 </div>
+                )}
               </div>
             </div>
 
@@ -228,10 +303,10 @@ export default function Footer() {
                 <div className="py-24 text-center space-y-4">
                   <CheckCircle2 className="w-12 h-12 text-[#7CE577] mx-auto" />
                   <h3 className="font-serif text-3xl font-light text-white">
-                    Diagnóstico Solicitado com Sucesso
+                    Mensagem recebida
                   </h3>
-                  <p className="text-sm text-white/70 max-w-md mx-auto leading-relaxed">
-                    Recebemos seus dados em sigilo técnico. Nossa equipe entrará em contato em breve para apresentar os próximos passos.
+                  <p className="text-base text-white/75 max-w-md mx-auto leading-relaxed">
+                    Recebemos seus dados sob sigilo profissional. Um especialista entrará em contato para apresentar os próximos passos.
                   </p>
                   <div className="pt-4">
                     <button
@@ -244,11 +319,22 @@ export default function Footer() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} noValidate className="relative space-y-8">
+                  {/* Honeypot anti-spam: invisível para pessoas, preenchido por robôs */}
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    className="absolute -left-[9999px] h-0 w-0 opacity-0"
+                  />
                   {/* Linha 1: Nome Completo e E-mail */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                      <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                         Nome Completo*
                       </label>
                       <input
@@ -257,12 +343,12 @@ export default function Footer() {
                         placeholder="Seu nome"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white placeholder-white/25 focus:border-white outline-none transition-colors"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                      <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                         E-mail*
                       </label>
                       <input
@@ -271,7 +357,7 @@ export default function Footer() {
                         placeholder="seu.email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white placeholder-white/25 focus:border-white outline-none transition-colors"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -279,28 +365,28 @@ export default function Footer() {
                   {/* Linha 2: Telefone e Momento Profissional */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                      <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                         Telefone / WhatsApp*
                       </label>
                       <input
                         required
                         type="tel"
-                        placeholder="(11) 90000-0000"
+                        placeholder="(21) 90000-0000"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white placeholder-white/25 focus:border-white outline-none transition-colors"
+                        onChange={(e) => setFormData({ ...formData, phone: formatBrazilianPhone(e.target.value) })}
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                      <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                         Momento Profissional*
                       </label>
                       <div className="relative">
                         <select
                           value={formData.careerStage}
                           onChange={(e) => setFormData({ ...formData, careerStage: e.target.value })}
-                          className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
+                          className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
                         >
                           <option className="bg-[#062417] text-white" value="Próximo à Aposentadoria (50+ anos)">
                             Próximo à Aposentadoria (50+ anos)
@@ -330,29 +416,22 @@ export default function Footer() {
 
                   {/* Linha 3: Serviços de Maior Interesse (Checkboxes Estilo IWC) */}
                   <div className="space-y-3 pt-2">
-                    <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                    <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                       Quais serviços são do seu maior interesse?
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      {[
-                        'Planejamento Previdenciário',
-                        'Auditoria de CNIS & Vínculos',
-                        'Aposentadoria Especial & PPP',
-                        'Revisão de Benefício Concedido',
-                        'Simulações Matemáticas',
-                        'Diagnóstico Geral Completo',
-                      ].map((service) => {
+                      {FOOTER_SERVICES.map((service) => {
                         const isSelected = formData.services.includes(service);
                         return (
                           <label
                             key={service}
-                            className="flex items-center gap-3 cursor-pointer group select-none text-xs text-white/80 hover:text-white transition-colors"
+                            className="flex items-center gap-3 cursor-pointer group select-none text-sm text-white/80 hover:text-white transition-colors"
                           >
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => handleServiceToggle(service)}
-                              className="hidden"
+                              className="sr-only"
                             />
                             <div
                               className={`w-4 h-4 rounded-sm border transition-colors flex items-center justify-center shrink-0 ${
@@ -372,14 +451,14 @@ export default function Footer() {
 
                   {/* Linha 4: Como Ficou Sabendo */}
                   <div className="space-y-2">
-                    <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                    <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                       Como conheceu a Previare?
                     </label>
                     <div className="relative">
                       <select
                         value={formData.source}
                         onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
                       >
                         <option className="bg-[#062417] text-white" value="Busca no Google / Internet">
                           Busca no Google / Internet
@@ -402,7 +481,7 @@ export default function Footer() {
 
                   {/* Linha 5: Mensagem Breve */}
                   <div className="space-y-2">
-                    <label className="text-[11px] tracking-wider uppercase text-white/60 block font-medium">
+                    <label className="text-xs tracking-wider uppercase text-white/70 block font-medium">
                       Conte um pouco sobre sua trajetória (opcional)
                     </label>
                     <input
@@ -410,20 +489,20 @@ export default function Footer() {
                       placeholder="Ex: Contribuo há 33 anos e gostaria de avaliar as regras de transição..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full bg-transparent border-b border-white/20 pb-2 text-sm text-white placeholder-white/25 focus:border-white outline-none transition-colors"
+                      className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
                     />
                   </div>
 
                   {/* Checkboxes de Agendamento e LGPD */}
                   <div className="space-y-3 pt-3">
-                    <label className="flex items-center gap-3 cursor-pointer text-xs text-white/70 hover:text-white">
+                    <label className="flex items-center gap-3 cursor-pointer text-sm text-white/75 hover:text-white">
                       <input
                         type="checkbox"
                         checked={formData.scheduleSession}
                         onChange={(e) =>
                           setFormData({ ...formData, scheduleSession: e.target.checked })
                         }
-                        className="hidden"
+                        className="sr-only"
                       />
                       <div
                         className={`w-4 h-4 rounded-sm border transition-colors flex items-center justify-center shrink-0 ${
@@ -437,15 +516,14 @@ export default function Footer() {
                       <span>Desejo agendar uma sessão de alinhamento com um especialista técnico.</span>
                     </label>
 
-                    <label className="flex items-start gap-3 cursor-pointer text-xs text-white/60 hover:text-white">
+                    <label className="flex items-start gap-3 cursor-pointer text-sm text-white/70 hover:text-white">
                       <input
-                        required
                         type="checkbox"
                         checked={formData.privacyAgreed}
                         onChange={(e) =>
                           setFormData({ ...formData, privacyAgreed: e.target.checked })
                         }
-                        className="hidden"
+                        className="sr-only"
                       />
                       <div
                         className={`w-4 h-4 rounded-sm border shrink-0 mt-0.5 transition-colors flex items-center justify-center ${
@@ -469,12 +547,18 @@ export default function Footer() {
                     </label>
                   </div>
 
+                  {error && (
+                    <p role="alert" className="text-base font-medium text-[#FFB4A8] leading-snug">
+                      {error}
+                    </p>
+                  )}
+
                   {/* Botão de Envio (Estilo IWC Minimalista) */}
                   <div className="pt-6">
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex items-center gap-3 bg-white/90 hover:bg-white text-[#020B06] text-xs font-semibold tracking-[0.2em] uppercase py-3.5 px-8 rounded-sm transition-all duration-300 shadow-sm cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-3 bg-white/90 hover:bg-white text-[#020B06] text-sm font-semibold tracking-[0.2em] uppercase py-4 px-8 rounded-sm transition-all duration-300 shadow-sm cursor-pointer disabled:opacity-50"
                     >
                       <span>{isSubmitting ? 'Enviando...' : 'Enviar Mensagem'}</span>
                       <span className="text-sm font-mono leading-none">--</span>
@@ -503,7 +587,7 @@ export default function Footer() {
                     width={180}
                   />
                 </Link>
-                <p className="text-xs text-white/50 max-w-sm leading-relaxed">
+                <p className="text-sm text-white/60 max-w-sm leading-relaxed">
                   Auditoria atuarial, inteligência jurídica e planejamento estratégico para proteger e maximizar o patrimônio da sua aposentadoria.
                 </p>
                 <p className="editorial-serif text-sm text-[#7CE577]/90 italic pt-1">
@@ -513,10 +597,10 @@ export default function Footer() {
 
               {/* Coluna Soluções */}
               <div className="lg:col-span-3 space-y-3.5">
-                <span className="text-[11px] tracking-[0.25em] text-white/40 uppercase block font-semibold">
+                <span className="text-xs tracking-[0.25em] text-white/50 uppercase block font-semibold">
                   Soluções
                 </span>
-                <ul className="space-y-2.5 text-xs text-white/70">
+                <ul className="space-y-2.5 text-sm text-white/75">
                   <li>
                     <a onClick={(e) => handleFooterNav(e, '#servicos')} className="hover:text-white transition-colors flex items-center gap-2 group cursor-pointer" href="#servicos">
                       <span className="text-white/30 group-hover:text-[#7CE577] transition-colors font-mono">└</span>
@@ -558,18 +642,13 @@ export default function Footer() {
 
               {/* Coluna Institucional */}
               <div className="lg:col-span-2 space-y-3.5">
-                <span className="text-[11px] tracking-[0.25em] text-white/40 uppercase block font-semibold">
+                <span className="text-xs tracking-[0.25em] text-white/50 uppercase block font-semibold">
                   Institucional
                 </span>
-                <ul className="space-y-2.5 text-xs text-white/70">
+                <ul className="space-y-2.5 text-sm text-white/75">
                   <li>
                     <a onClick={(e) => handleFooterNav(e, '#sobre')} className="hover:text-white transition-colors cursor-pointer" href="#sobre">
                       Sobre a Marca
-                    </a>
-                  </li>
-                  <li>
-                    <a onClick={(e) => handleFooterNav(e, '#sobre')} className="hover:text-white transition-colors cursor-pointer" href="#sobre">
-                      O Conceito dos 3P
                     </a>
                   </li>
                   <li>
@@ -578,44 +657,44 @@ export default function Footer() {
                     </a>
                   </li>
                   <li>
+                    <a onClick={(e) => handleFooterNav(e, '#duvidas')} className="hover:text-white transition-colors cursor-pointer" href="#duvidas">
+                      Dúvidas Frequentes
+                    </a>
+                  </li>
+                  <li>
+                    <Link className="hover:text-white transition-colors" href="/termos#etica-oab">
+                      Diretrizes Éticas OAB
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Coluna Atendimento */}
+              <div className="lg:col-span-2 space-y-3.5">
+                <span className="text-xs tracking-[0.25em] text-white/50 uppercase block font-semibold">
+                  Atendimento
+                </span>
+                <ul className="space-y-2.5 text-sm text-white/75">
+                  <li>
                     <a onClick={(e) => handleFooterNav(e, '#simulador')} className="hover:text-white transition-colors cursor-pointer" href="#simulador">
                       Simulador Atuarial
                     </a>
                   </li>
                   <li>
-                    <a onClick={(e) => handleFooterNav(e, '#sobre')} className="hover:text-white transition-colors cursor-pointer" href="#sobre">
-                      Diretrizes Éticas OAB
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Coluna Portais & Acesso */}
-              <div className="lg:col-span-2 space-y-3.5">
-                <span className="text-[11px] tracking-[0.25em] text-white/40 uppercase block font-semibold">
-                  Acesso
-                </span>
-                <ul className="space-y-2.5 text-xs text-white/70">
-                  <li>
-                    <a onClick={(e) => handleFooterNav(e, '#simulador')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer" href="#simulador">
-                      <span className="editorial-serif text-[#7CE577] italic text-base leading-none">e</span>
-                      <span>Diagnóstico Prévio</span>
+                    <a
+                      href="#contato"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openSpecialistModal({ origin: 'Footer · Falar com especialista' });
+                      }}
+                      className="hover:text-white transition-colors cursor-pointer"
+                    >
+                      Falar com especialista
                     </a>
                   </li>
                   <li>
-                    <a onClick={(e) => handleFooterNav(e, '#contato')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer" href="#contato">
-                      <span className="text-white/40 text-xs">👤</span>
-                      <span>Área do Cliente</span>
-                    </a>
-                  </li>
-                  <li>
-                    <a onClick={(e) => handleFooterNav(e, '#contato')} className="hover:text-white transition-colors cursor-pointer" href="#contato">
-                      Atendimento Online
-                    </a>
-                  </li>
-                  <li>
-                    <a onClick={(e) => handleFooterNav(e, '#contato')} className="hover:text-white transition-colors cursor-pointer" href="#contato">
-                      Ouvidoria & Suporte
+                    <a href={`mailto:${SITE_CONFIG.email}?subject=Ouvidoria`} className="hover:text-white transition-colors">
+                      Ouvidoria
                     </a>
                   </li>
                 </ul>
@@ -623,11 +702,12 @@ export default function Footer() {
 
             </div>
 
-            {/* Faixa Final com Links Legais e Copyright */}
-            <div className="border-t border-white/[0.08] pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-white/40 tracking-wider">
-              <p className="text-center md:text-left">
-                © 2026 PREVIARE PLANEJAMENTO PREVIDENCIÁRIO. TODOS OS DIREITOS RESERVADOS.
-              </p>
+            {/* Faixa Final com Links Legais, identificação da sociedade e Copyright */}
+            <div className="border-t border-white/[0.08] pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/50 tracking-wider">
+              <div className="text-center md:text-left space-y-1">
+                <p>© {new Date().getFullYear()} PREVIARE. TODOS OS DIREITOS RESERVADOS.</p>
+                {legalLine && <p className="text-white/40 normal-case tracking-normal">{legalLine}</p>}
+              </div>
               <div className="flex flex-wrap items-center justify-center gap-6">
                 <Link className="hover:text-white transition-colors" href="/termos">
                   TERMOS DE USO
@@ -636,11 +716,9 @@ export default function Footer() {
                 <Link className="hover:text-white transition-colors" href="/politica-de-privacidade">
                   POLÍTICA DE PRIVACIDADE (LGPD)
                 </Link>
-                <span className="text-white/20">•</span>
-                <span className="text-white/50">CONFORMIDADE OAB</span>
               </div>
-              <div className="text-white/40 font-medium">
-                SÃO PAULO / BRASIL
+              <div className="text-white/50 font-medium uppercase">
+                {SITE_CONFIG.city} / Brasil
               </div>
             </div>
           </div>

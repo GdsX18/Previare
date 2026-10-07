@@ -32,6 +32,9 @@ const NARRATIVE_BLOCKS = [
   },
 ];
 
+// Blocos fora de foco seguem legíveis para o público sênior (contraste mínimo sobre #EAF2EB)
+const INACTIVE_OPACITY = 0.55;
+
 export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +102,7 @@ export default function AboutSection() {
     if (items.length > 0) {
       // Inicializa opacidades
       items.forEach((item, idx) => {
-        gsap.set(item, { opacity: idx === 0 ? 1 : 0.3 });
+        gsap.set(item, { opacity: idx === 0 ? 1 : INACTIVE_OPACITY });
       });
 
       items.forEach((item, idx) => {
@@ -113,7 +116,7 @@ export default function AboutSection() {
           // Bloco inicial começa em destaque e esmaece suavemente ao subir
           tl.to(
             item,
-            { opacity: 0.3, ease: "power1.inOut", duration: 0.1 },
+            { opacity: INACTIVE_OPACITY, ease: "power1.inOut", duration: 0.1 },
             0.16
           );
         } else {
@@ -132,7 +135,7 @@ export default function AboutSection() {
           if (idx < items.length - 1) {
             tl.to(
               item,
-              { opacity: 0.3, ease: "power1.inOut", duration: Math.max(0.04, endOut - peak) },
+              { opacity: INACTIVE_OPACITY, ease: "power1.inOut", duration: Math.max(0.04, endOut - peak) },
               peak
             );
           }

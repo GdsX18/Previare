@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { deferScrollSetup, type Gsap } from '@/lib/gsap';
 import { LiquidMetalFallback } from '@/components/canvas/fallbacks';
+import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 
 // Shader WebGL carregado sob demanda (fora do bundle inicial e do SSR)
 const LiquidMetalBackground = dynamic(() => import('@/components/canvas/LiquidMetalBackground'), {
@@ -59,6 +60,7 @@ const DIFFERENTIALS: Differential[] = [
 export default function DifferentialsSection() {
   const containerRef = useRef<HTMLElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+  const { openSpecialistModal } = useSpecialistModal();
 
   function setupScroll(gsap: Gsap) {
     // 1. Linha Contínua em SVG acompanhando o scroll
@@ -116,7 +118,7 @@ export default function DifferentialsSection() {
     <section
       ref={containerRef}
       id="diferenciais"
-      className="relative w-full py-36 sm:py-56 overflow-clip bg-[#030F0A] text-white select-none"
+      className="relative w-full pt-36 sm:pt-56 pb-28 sm:pb-40 overflow-clip bg-ink-deep text-white select-none"
     >
       {/* Shader WebGL Liquid Metal de Fundo */}
       <LiquidMetalBackground />
@@ -248,6 +250,24 @@ export default function DifferentialsSection() {
               </span>
             ))}
           </div>
+        </div>
+
+        {/* Saída do clímax: transforma convicção em conversa */}
+        <div className="w-full max-w-6xl pl-2 sm:pl-10 lg:pl-16 pt-4 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
+          <p className="font-serif text-2xl sm:text-3xl lg:text-4xl font-light text-white/90 leading-snug max-w-xl">
+            Quer ver esse método aplicado ao seu histórico?
+          </p>
+          <a
+            href="#contato"
+            onClick={(e) => {
+              e.preventDefault();
+              openSpecialistModal({ origin: 'Diferenciais · Ver método aplicado' });
+            }}
+            className="inline-flex min-h-[56px] w-fit shrink-0 items-center gap-3 rounded-full border border-[#7CE577]/50 bg-[#7CE577] px-7 font-sans text-base font-semibold text-ink-deep transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7CE577] focus-visible:ring-offset-4 focus-visible:ring-offset-ink-deep"
+          >
+            Falar com um especialista
+            <span aria-hidden="true">↗</span>
+          </a>
         </div>
       </div>
     </section>

@@ -4,6 +4,8 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { ArrowDown } from "lucide-react";
 import { SilkFallback } from "@/components/canvas/fallbacks";
+import { useSpecialistModal } from "@/components/contact/SpecialistModalProvider";
+import { scrollToSection } from "@/lib/smoothScroll";
 
 // Shader WebGL fora do bundle inicial e fora do SSR: o HTML do servidor já
 // pinta a base estática em CSS, e o canvas assume após a hidratação.
@@ -15,6 +17,8 @@ const SilkBackground = dynamic(() => import("@/components/canvas/SilkBackground"
 // A intro (linhas do título, subtítulo e scroll) é animada via CSS em globals.css
 // (keyframes `hero-intro`), com a mesma coreografia da timeline GSAP original.
 export default function HeroSection() {
+  const { openSpecialistModal } = useSpecialistModal();
+
   return (
     <section
       aria-label="Apresentação Previare"
@@ -40,16 +44,41 @@ export default function HeroSection() {
           </h1>
 
           {/* Subtítulo Posicionado Logo Abaixo */}
-          <p className="hero-subtitle mt-6 sm:mt-8 md:mt-10 max-w-sm sm:max-w-md md:max-w-xl text-xs sm:text-sm md:text-base text-white/80 font-sans font-light leading-relaxed tracking-wide text-left pl-2 drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+          <p className="hero-subtitle mt-6 sm:mt-8 md:mt-10 max-w-sm sm:max-w-md md:max-w-xl text-base md:text-lg text-white/85 font-sans font-light leading-relaxed tracking-wide text-left pl-2 drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
             Consultoria estratégica de vínculos, cálculo atuarial multivariado e segurança jurídica para o seu futuro patrimonial.
           </p>
+
+          {/* CTAs: principal leva ao simulador, secundário abre o atendimento */}
+          <div className="hero-ctas mt-8 sm:mt-10 pl-2 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+            <a
+              href="#simulador"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection("#simulador", { offset: 85 });
+              }}
+              className="inline-flex min-h-[56px] w-fit items-center gap-3 rounded-full bg-[#7CE577] px-7 font-sans text-base font-semibold text-ink-deep shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7CE577] focus-visible:ring-offset-4 focus-visible:ring-offset-ink-deep"
+            >
+              Fazer minha simulação
+              <ArrowDown className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a
+              href="#contato"
+              onClick={(e) => {
+                e.preventDefault();
+                openSpecialistModal({ origin: "Hero · Falar com um especialista" });
+              }}
+              className="inline-flex min-h-[44px] w-fit items-center gap-2 border-b border-white/40 pb-0.5 font-sans text-base font-medium text-white/90 drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-colors hover:border-white hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent rounded-sm"
+            >
+              Falar com um especialista
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Rodapé da Tela: SCROLL DOWN Centralizado */}
-      <div className="hero-scroll relative z-10 flex flex-col items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-[10px] tracking-[0.3em] uppercase pointer-events-none mx-auto pb-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-        <span>SCROLL DOWN</span>
-        <ArrowDown className="w-3.5 h-3.5 animate-bounce text-white/40" />
+      {/* Rodapé da Tela: convite à rolagem centralizado */}
+      <div className="hero-scroll relative z-10 flex flex-col items-center gap-2 text-white/60 text-xs tracking-[0.3em] uppercase pointer-events-none mx-auto pb-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+        <span>Role para conhecer</span>
+        <ArrowDown className="w-3.5 h-3.5 animate-bounce motion-reduce:animate-none text-white/60" aria-hidden="true" />
       </div>
     </section>
   );

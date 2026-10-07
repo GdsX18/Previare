@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   ShieldCheck,
   HelpCircle,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 import type { ContactSubject } from '@/lib/specialistContact';
@@ -21,6 +19,37 @@ const SUBJECT_BY_MODE: Record<Mode, ContactSubject> = {
   revisao: 'Revisão de Aposentadoria Concedida',
   amparo: 'Benefício por Incapacidade ou BPC / LOAS',
 };
+
+// Cenários ilustrativos (hipotéticos, sem relação com clientes reais): cada cartão
+// preenche o simulador para mostrar, na prática, onde a análise faz diferença.
+type ScenarioId = 'engenheiro' | 'medica' | 'empresario' | 'servidor';
+
+const SCENARIOS: { id: ScenarioId; profile: string; title: string; insight: string }[] = [
+  {
+    id: 'engenheiro',
+    profile: 'Engenheiro, 58 anos',
+    title: '5 anos de PPP não averbados',
+    insight: 'Tempo especial até 13/11/2019, convertido pelo fator 1,4, pode somar cerca de 2 anos de contribuição.',
+  },
+  {
+    id: 'medica',
+    profile: 'Médica, 57 anos',
+    title: 'Hospital e consultório ao mesmo tempo',
+    insight: 'Contribuições simultâneas se somam até o teto (Tema 1070/STJ) e podem elevar a média do benefício.',
+  },
+  {
+    id: 'empresario',
+    profile: 'Empresário, 60 anos',
+    title: 'Pró-labore baixo e meses em aberto',
+    insight: 'Recolhimentos abaixo do mínimo após a Reforma só contam se forem complementados ou agrupados.',
+  },
+  {
+    id: 'servidor',
+    profile: 'Servidor público, 59 anos',
+    title: 'Tempo celetista antes do concurso',
+    insight: 'Averbação por CTC e contagem recíproca entre regimes exigem análise individual (RPPS).',
+  },
+];
 
 export default function SimulatorSection() {
   const [mode, setMode] = useState<Mode>('aposentadoria');
@@ -188,17 +217,13 @@ export default function SimulatorSection() {
     }
 
     const isAgeEligible = ampModalidade === 'loas_idoso' ? ampAge >= 65 : true;
-    let incomeStatus = '';
     let isOptimal = false;
 
     if (ampPerCapita <= quartoSM) {
-      incomeStatus = 'Critério de renda familiar atendido integralmente (até 1/4 do salário mínimo).';
       isOptimal = true;
     } else if (ampPerCapita <= meioSM) {
-      incomeStatus = 'Elegível mediante comprovação judicial de despesas contínuas com remédios e fraldas.';
       isOptimal = true;
     } else {
-      incomeStatus = 'Renda familiar acima de meio salário mínimo: exige comprovação de gastos médicos dedutíveis.';
       isOptimal = false;
     }
 
@@ -213,9 +238,9 @@ export default function SimulatorSection() {
       eligibilityStatus:
         ampModalidade === 'loas_idoso'
           ? isAgeEligible
-            ? 'Você tem direito a receber 1 salário mínimo mensal (R$ 1.518,00), atendendo ao critério de idade mínima (65 anos).'
+            ? 'Pelos dados informados, você pode ter direito a 1 salário mínimo mensal (R$ 1.518,00): o critério de idade mínima (65 anos) está atendido. A renda familiar é confirmada na análise.'
             : `O BPC para idosos exige 65 anos completos. Faltam ${65 - ampAge} anos para requerer.`
-          : 'Você tem direito a receber 1 salário mínimo mensal (R$ 1.518,00), mediante avaliação médica e social do INSS.',
+          : 'Pelos dados informados, você pode ter direito a 1 salário mínimo mensal (R$ 1.518,00), condicionado à avaliação médica e social do INSS.',
       isOptimal: isAgeEligible && isOptimal,
       baselineValue: quartoSM,
     };
@@ -234,6 +259,45 @@ export default function SimulatorSection() {
     }
     return `Simulação Amparo/Incapacidade Previare: Modalidade ${ampModalidade}, Projeção ${formatCurrency(amparoCalc.benefitValue)}, Status: ${amparoCalc.statusTitle}.`;
   }, [mode, age, aposentadoriaCalc, specExposedYears, especialCalc, revConcessionYear, revCurrentBenefit, revisaoCalc, ampModalidade, amparoCalc]);
+
+  const [activeScenario, setActiveScenario] = useState<ScenarioId | null>(null);
+
+  const applyScenario = (id: ScenarioId) => {
+    if (id === 'servidor') {
+      // O simulador cobre apenas o RGPS: servidores seguem direto para o especialista
+      openSpecialistModal({
+        subject: 'Planejamento Previdenciário',
+        message: 'Sou servidor(a) público(a) e tenho tempo de contribuição anterior ao concurso (CLT/INSS).',
+        origin: 'Simulador · Cenário servidor público',
+      });
+      return;
+    }
+    setActiveScenario(id);
+    if (id === 'engenheiro') {
+      setMode('especial');
+      setSpecGender('M');
+      setSpecCommonYears(27);
+      setSpecExposedYears(5);
+      setSpecSalary(7800);
+      return;
+    }
+    setMode('aposentadoria');
+    setHasSpecialTime(false);
+    if (id === 'medica') {
+      setGender('F');
+      setAge(57);
+      setContributionYears(28);
+      setAverageSalary(7900);
+      setHasPendingCnis(false);
+    } else {
+      setGender('M');
+      setAge(60);
+      setContributionYears(30);
+      setAverageSalary(3200);
+      setHasPendingCnis(true);
+      setPendingMonths(36);
+    }
+  };
 
   const handleExport = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -317,6 +381,51 @@ export default function SimulatorSection() {
         </p>
       </div>
 
+      {/* Cenários ilustrativos: atalhos que preenchem o simulador */}
+      <div className="w-full max-w-5xl mb-8 sm:mb-10 z-10">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+          <h3 className="font-sans text-xs sm:text-sm tracking-[0.25em] uppercase font-semibold text-[#2F7335]">
+            Situações que encontramos com frequência
+          </h3>
+          <p className="text-sm text-[#1F3325]/75">Toque em um cenário para preencher o simulador.</p>
+        </div>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {SCENARIOS.map((scenario) => {
+            const isActive = activeScenario === scenario.id;
+            return (
+              <li key={scenario.id} className="flex">
+                <button
+                  type="button"
+                  onClick={() => applyScenario(scenario.id)}
+                  aria-pressed={scenario.id === 'servidor' ? undefined : isActive}
+                  {...(scenario.id === 'servidor' ? { 'data-specialist-cta': true } : {})}
+                  className={`w-full text-left rounded-2xl border-2 p-5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7C5A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF2EB] ${
+                    isActive
+                      ? 'border-[#0E7C5A] bg-white shadow-md'
+                      : 'border-[#2F7335]/15 bg-white/60 hover:bg-white hover:border-[#2F7335]/40'
+                  }`}
+                >
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-[#0E7C5A]">
+                    {scenario.profile}
+                  </span>
+                  <span className="mt-2 block font-serif text-xl font-light leading-snug text-[#0B1A0F]">
+                    {scenario.title}
+                  </span>
+                  <span className="mt-2 block text-sm leading-relaxed text-[#1F3325]/85">{scenario.insight}</span>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E7C5A]">
+                    {scenario.id === 'servidor' ? 'Falar com especialista' : 'Simular este cenário'}
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-xs text-[#1F3325]/70">
+          Cenários ilustrativos e hipotéticos. Não representam clientes reais nem promessa de resultado.
+        </p>
+      </div>
+
       {/* Janela Central Estilo MacBook App com Alta Acessibilidade */}
       <div className="w-full max-w-5xl rounded-2xl sm:rounded-3xl bg-white/95 border border-neutral-200/80 shadow-2xl p-6 sm:p-10 tracking-normal select-none simulator-accessible-root">
         {/* macOS Title Bar Acessível */}
@@ -343,7 +452,10 @@ export default function SimulatorSection() {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setMode(tab.id as Mode)}
+                  onClick={() => {
+                    setMode(tab.id as Mode);
+                    setActiveScenario(null);
+                  }}
                   className={`py-3.5 px-4 text-sm sm:text-base font-semibold rounded-xl transition-all text-center flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] ${
                     isActive
                       ? 'bg-[#0E7C5A] text-white shadow-md'
@@ -869,7 +981,7 @@ export default function SimulatorSection() {
                         <button
                           key={t.id}
                           type="button"
-                          onClick={() => setRevType(t.id as any)}
+                          onClick={() => setRevType(t.id as typeof revType)}
                           className={`p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] ${
                             revType === t.id
                               ? 'border-[#0E7C5A] bg-[#0E7C5A]/10 text-[#0B1A0F] shadow-sm'
@@ -1026,7 +1138,7 @@ export default function SimulatorSection() {
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => setAmpModalidade(item.id as any)}
+                          onClick={() => setAmpModalidade(item.id as typeof ampModalidade)}
                           className={`p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] ${
                             ampModalidade === item.id
                               ? 'border-[#0E7C5A] bg-[#0E7C5A]/10 text-[#0B1A0F] shadow-sm'
@@ -1189,7 +1301,7 @@ export default function SimulatorSection() {
                   {mode === 'aposentadoria' && 'Renda Mensal Estimada'}
                   {mode === 'especial' && 'Renda Mensal com Conversão'}
                   {mode === 'revisao' && 'Nova Renda Projetada'}
-                  {mode === 'amparo' && 'Benefício Mensal Garantido'}
+                  {mode === 'amparo' && 'Benefício Mensal Estimado'}
                 </span>
 
                 <div className="mt-2 flex items-baseline gap-2">
@@ -1211,7 +1323,7 @@ export default function SimulatorSection() {
                     {mode === 'aposentadoria' && `+${aposentadoriaCalc.gainPercent}% no cenário ótimo`}
                     {mode === 'especial' && `+${especialCalc.gainPercent}% ganho mensal`}
                     {mode === 'revisao' && `+${revisaoCalc.totalPercentIncrease}% de aumento`}
-                    {mode === 'amparo' && (amparoCalc.isOptimal ? 'Enquadramento Válido' : 'Requer Análise')}
+                    {mode === 'amparo' && (amparoCalc.isOptimal ? 'Indícios de Enquadramento' : 'Requer Análise')}
                   </span>
                 </div>
 
@@ -1354,7 +1466,7 @@ export default function SimulatorSection() {
                   )}
                   {mode === 'revisao' && (
                     <>
-                      A revisão do seu cálculo pode aumentar seu benefício em <strong>+{formatCurrency(revisaoCalc.monthlyDiff)} por mês</strong> ({revisaoCalc.totalPercentIncrease}% de aumento), além de garantir aproximadamente <strong>{formatCurrency(revisaoCalc.estimatedRetroactives)} em atrasados</strong> dos últimos 5 anos.
+                      A revisão do seu cálculo pode aumentar seu benefício em <strong>+{formatCurrency(revisaoCalc.monthlyDiff)} por mês</strong> ({revisaoCalc.totalPercentIncrease}% de aumento) e gerar cerca de <strong>{formatCurrency(revisaoCalc.estimatedRetroactives)} em atrasados</strong> dos últimos 5 anos, se a revisão for reconhecida.
                     </>
                   )}
                   {mode === 'amparo' && (
@@ -1364,6 +1476,13 @@ export default function SimulatorSection() {
                   )}
                 </p>
               </div>
+
+              {/* A lacuna que só a auditoria revela: ponte entre a estimativa e o atendimento */}
+              <p className="text-sm text-neutral-700 leading-relaxed">
+                <strong className="text-[#0B1A0F]">Este número parte só do que você informou.</strong> Vínculos que não
+                aparecem no CNIS, períodos especiais não reconhecidos e salários fora do cálculo só são encontrados na
+                análise do seu histórico completo — e podem mudar este resultado.
+              </p>
             </div>
 
             {/* Botão Final Amplo e Acessível */}
@@ -1372,15 +1491,20 @@ export default function SimulatorSection() {
                 type="button"
                 onClick={handleExport}
                 data-specialist-cta
-                className="w-full py-4 px-6 text-sm sm:text-base font-semibold text-white bg-[#0E7C5A] hover:bg-[#0B6549] rounded-xl flex items-center justify-center gap-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] focus:ring-offset-2 cursor-pointer active:scale-[0.99]"
+                className="w-full py-4 px-6 text-base font-semibold text-white bg-[#0E7C5A] hover:bg-[#0B6549] rounded-xl flex items-center justify-center gap-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#0E7C5A] focus:ring-offset-2 cursor-pointer active:scale-[0.99] text-center"
               >
                 <span>
-                  {exportedStatus ? 'Cálculo copiado! Abrindo atendimento...' : 'Exportar meu cálculo'}
+                  {exportedStatus ? 'Abrindo atendimento com o seu cálculo...' : 'Quero que um especialista confira este cálculo'}
                 </span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-5 h-5 shrink-0" />
               </button>
-              <p className="text-xs text-center text-neutral-500 mt-2.5 font-medium">
-                Cálculo confidencial conforme as regras oficiais da Previdência Social
+              <p className="flex items-start justify-center gap-2 text-sm text-center text-neutral-600 mt-3 font-medium">
+                <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-[#0E7C5A]" aria-hidden="true" />
+                <span>Seus dados ficam sob sigilo profissional e não são compartilhados com terceiros.</span>
+              </p>
+              <p className="text-xs text-center text-neutral-500 mt-2 leading-relaxed">
+                Estimativa ilustrativa com regras simplificadas da EC 103/2019. Não é cálculo oficial nem promessa de
+                resultado.
               </p>
             </div>
           </div>

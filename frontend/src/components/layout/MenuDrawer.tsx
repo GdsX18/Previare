@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, X } from "lucide-react";
 import { scrollToSection } from "@/lib/smoothScroll";
@@ -17,6 +16,7 @@ const MENU_LINKS = [
   { label: "SOLUÇÕES", href: "#servicos" },
   { label: "SIMULADOR", href: "#simulador" },
   { label: "DIFERENCIAIS", href: "#diferenciais" },
+  { label: "DÚVIDAS", href: "#duvidas" },
   { label: "PRÓXIMO PASSO", href: "#proximo-passo" },
   { label: "CONTATO", href: "#contato" },
 ];

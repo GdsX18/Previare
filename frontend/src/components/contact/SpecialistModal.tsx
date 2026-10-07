@@ -570,7 +570,8 @@ export default function SpecialistModal({
                       <span>
                         Seus dados são confidenciais e protegidos pelo{' '}
                         <strong className="font-bold">sigilo profissional da advocacia (OAB)</strong> e pela{' '}
-                        <strong className="font-bold">Lei Geral de Proteção de Dados</strong>.
+                        <strong className="font-bold">Lei Geral de Proteção de Dados</strong>. Não compartilhamos
+                        seus dados com terceiros e nunca pedimos a sua senha do gov.br.
                       </span>
                     </p>
                   </div>

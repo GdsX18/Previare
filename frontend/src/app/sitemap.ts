@@ -4,51 +4,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://previare.com.br";
   const currentDate = new Date();
 
-  const routes = [
+  // Apenas rotas que existem de fato: URLs inexistentes no sitemap geram 404 indexado
+  return [
     {
       url: `${baseUrl}`,
       lastModified: currentDate,
-      changeFrequency: "weekly" as const,
+      changeFrequency: "weekly",
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/sobre`,
+      url: `${baseUrl}/politica-de-privacidade`,
       lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
+      changeFrequency: "yearly",
+      priority: 0.3,
     },
     {
-      url: `${baseUrl}/servicos/planejamento-previdenciario`,
+      url: `${baseUrl}/termos`,
       lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/servicos/aposentadoria-especial`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/servicos/revisao-beneficios`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/calculadora-aposentadoria`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/contato`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
+      changeFrequency: "yearly",
+      priority: 0.3,
     },
   ];
-
-  return routes;
 }
-

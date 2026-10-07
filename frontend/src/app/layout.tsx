@@ -3,6 +3,7 @@ import { Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SpecialistModalProvider } from "@/components/contact/SpecialistModalProvider";
+import { SITE_CONFIG } from "@/lib/siteConfig";
 
 const serifFont = Playfair_Display({
   variable: "--font-serif",
@@ -60,7 +61,7 @@ export const metadata: Metadata = {
     "benefício previdenciário",
     "Previare",
   ],
-  authors: [{ name: "Previare Consultoria Previdenciária" }],
+  authors: [{ name: "Previare" }],
   creator: "Previare",
   publisher: "Previare",
   formatDetection: {
@@ -117,19 +118,21 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "FinancialService",
+      "@type": "LegalService",
       "@id": `${siteUrl}/#organization`,
       name: "Previare",
-      legalName: "Previare Planejamento Previdenciário",
+      ...(SITE_CONFIG.legalName ? { legalName: SITE_CONFIG.legalName } : {}),
+      email: SITE_CONFIG.email,
       url: siteUrl,
       logo: `${siteUrl}/images/logos/previare-logo.svg`,
       image: `${siteUrl}/images/logos/previare-logo.svg`,
       description:
         "Assessoria técnica, cálculos atuariais e planejamento personalizado de aposentadorias e benefícios previdenciários no Brasil.",
-      telephone: "+55-11-4000-0000",
-      priceRange: "$$",
+      ...(SITE_CONFIG.phoneE164 ? { telephone: `+${SITE_CONFIG.phoneE164}` } : {}),
       address: {
         "@type": "PostalAddress",
+        addressLocality: SITE_CONFIG.city,
+        addressRegion: SITE_CONFIG.state,
         addressCountry: "BR",
       },
       areaServed: {

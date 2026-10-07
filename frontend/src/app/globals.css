@@ -13,6 +13,13 @@
   --color-silk-lime: #7CE577;
   --color-silk-cream: #F4FFC7;
 
+  /* Dois únicos "quase-pretos" da página: fundo profundo e verde-floresta */
+  --color-ink-deep: #020B07;
+  --color-ink-forest: #03120E;
+  /* Papel claro editorial e sua variação para o capítulo de decisão */
+  --color-paper: #EAF2EB;
+  --color-paper-soft: #F3F6F1;
+
   --color-neutral-offwhite: #F9FAF9;
   --color-neutral-subtle: #F4F6F4;
   --color-neutral-graphite: #0D150E;
@@ -76,6 +83,7 @@ body {
 .hero-line-1,
 .hero-line-2,
 .hero-subtitle,
+.hero-ctas,
 .hero-scroll {
   animation-name: hero-intro;
   animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -100,8 +108,64 @@ body {
   animation-delay: 0.65s;
 }
 
+.hero-ctas {
+  --hero-intro-y: 16px;
+  animation-duration: 0.7s;
+  animation-delay: 0.8s;
+}
+
 .hero-scroll {
   --hero-intro-y: 10px;
   animation-duration: 0.6s;
   animation-delay: 0.95s;
+}
+
+/* Páginas legais: hierarquia editorial com leitura confortável (público sênior) */
+.legal-prose h2 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 300;
+  font-size: 1.875rem;
+  line-height: 1.15;
+  color: #0B1A0F;
+  margin-top: 3.5rem;
+  margin-bottom: 1rem;
+  scroll-margin-top: 2rem;
+}
+.legal-prose p,
+.legal-prose ul {
+  margin-bottom: 1.1rem;
+}
+.legal-prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.legal-prose li {
+  margin-bottom: 0.5rem;
+}
+.legal-prose a {
+  text-decoration: underline;
+}
+.legal-prose strong {
+  font-weight: 700;
+  color: #0B1A0F;
+}
+
+/* FAQ: revelação curta da resposta ao abrir o acordeão */
+@keyframes faq-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.faq-item[open] .faq-answer {
+  animation: faq-reveal 0.25s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-item[open] .faq-answer {
+    animation: none;
+  }
 }

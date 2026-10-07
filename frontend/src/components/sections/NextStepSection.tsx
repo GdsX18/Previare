@@ -24,7 +24,8 @@ const NEXT_STEPS: NextStep[] = [
     title: 'Planejar minha aposentadoria',
     description: 'Entenda seu histórico e organize as possibilidades para o futuro.',
     cta: 'Quero me planejar',
-    href: '#simulador',
+    href: '#contato',
+    subject: 'Planejamento Previdenciário',
     // Horizontal largo: quadrante superior esquerdo
     area: 'md:col-span-2 lg:col-span-8 lg:row-start-1 lg:min-h-[440px]',
   },
@@ -37,11 +38,11 @@ const NEXT_STEPS: NextStep[] = [
     area: 'lg:col-span-4 lg:col-start-9 lg:row-start-1',
   },
   {
-    title: 'Conhecer o consignado',
-    description: 'Conheça as condições e avalie o crédito com clareza e responsabilidade.',
-    cta: 'Quero entender',
+    title: 'Conferir minha aposentadoria',
+    description: 'Já recebe benefício? Verificamos se o cálculo do INSS considerou todo o seu histórico.',
+    cta: 'Quero conferir',
     href: '#contato',
-    subject: 'Outro Assunto Previdenciário',
+    subject: 'Revisão de Aposentadoria Concedida',
     // Bloco compacto: quadrante inferior esquerdo
     area: 'lg:col-span-4 lg:row-start-2 lg:min-h-[320px]',
   },
@@ -125,13 +126,10 @@ export default function NextStepSection() {
       id="proximo-passo"
       aria-labelledby="proximo-passo-title"
       data-theme="light"
-      className="relative w-full overflow-hidden bg-[#EAF2EB] text-[#0B1A0F] select-none"
+      className="relative w-full overflow-hidden bg-paper-soft text-[#0B1A0F] select-none"
     >
-      {/* Transição de entrada: dissolve o fundo escuro dos Diferenciais no verde claro */}
-      <div
-        className="absolute inset-x-0 top-0 h-40 sm:h-56 bg-gradient-to-b from-[#030F0A] via-[#030F0A]/40 to-transparent pointer-events-none"
-        aria-hidden="true"
-      />
+      {/* Junto com o FAQ forma o capítulo "decidir": separação por hairline, sem quebra de tom */}
+      <div className="absolute inset-x-0 top-0 h-px bg-[#2F7335]/20 pointer-events-none" aria-hidden="true" />
 
       {/* Marca d'água translúcida da Previare */}
       <div
@@ -148,7 +146,7 @@ export default function NextStepSection() {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-[1500px] mx-auto px-4 sm:px-12 lg:px-20 pt-44 sm:pt-60 pb-40 sm:pb-52">
+      <div className="relative z-10 w-full max-w-[1500px] mx-auto px-4 sm:px-12 lg:px-20 pt-28 sm:pt-36 pb-40 sm:pb-52">
         {/* Cabeçalho */}
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-20 sm:mb-28">
           <div className="max-w-4xl">
@@ -195,7 +193,7 @@ export default function NextStepSection() {
                 <a
                   href={step.href}
                   onClick={(e) => handleNav(e, step)}
-                  className="relative inline-flex w-fit shrink-0 items-center gap-2 pb-1 font-sans text-base sm:text-lg font-medium text-[#1F3325] transition-colors duration-300 hover:text-[#2F7335] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7335]/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#EAF2EB] rounded-sm"
+                  className="relative inline-flex w-fit shrink-0 items-center gap-2 pb-1 font-sans text-base sm:text-lg font-medium text-[#1F3325] transition-colors duration-300 hover:text-[#2F7335] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7335]/50 focus-visible:ring-offset-4 focus-visible:ring-offset-paper-soft rounded-sm"
                 >
                   {step.cta}
                   <span
@@ -217,7 +215,7 @@ export default function NextStepSection() {
 
       {/* Transição de saída: prepara a chegada do degradê escuro do formulário */}
       <div
-        className="absolute inset-x-0 bottom-0 h-32 sm:h-44 bg-gradient-to-b from-transparent to-[#010805] pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-32 sm:h-44 bg-gradient-to-b from-transparent to-ink-deep pointer-events-none"
         aria-hidden="true"
       />
     </section>
