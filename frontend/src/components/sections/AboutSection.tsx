@@ -144,12 +144,16 @@ export default function AboutSection() {
   }
 
   // Setup diferido para após a hidratação (prioriza FCP/LCP), com GSAP
-  // carregado sob demanda; o contexto reverte tudo ao desmontar.
+  // carregado sob demanda; o matchMedia reverte tudo ao desmontar.
+  // Pin + scrub apenas em desktop: no mobile, cada frame do scrub forçava a
+  // re-layerização da página inteira (queda de FPS); lá a leitura rola de
+  // forma nativa, sem nenhum trabalho de JS por frame.
   useEffect(
     () =>
       deferScrollSetup(({ gsap }) => {
-        const ctx = gsap.context(() => setupScroll(gsap), sectionRef.current ?? undefined);
-        return () => ctx.revert();
+        const mm = gsap.matchMedia(sectionRef.current ?? undefined);
+        mm.add("(min-width: 1024px)", () => setupScroll(gsap));
+        return () => mm.revert();
       }),
     []
   );
@@ -160,13 +164,13 @@ export default function AboutSection() {
       id="sobre"
       aria-label="Sobre a Previare"
       data-theme="light"
-      className="relative w-full h-screen overflow-hidden bg-[#EAF2EB] flex flex-col justify-end pb-10 sm:pb-14 md:pb-16 items-end px-6 sm:px-12 md:px-20 lg:px-32 z-20 select-none pt-24 md:pt-32"
+      className="relative w-full lg:h-screen overflow-hidden bg-[#EAF2EB] flex flex-col lg:justify-end pb-16 sm:pb-20 lg:pb-16 items-end px-6 sm:px-12 md:px-20 lg:px-32 z-20 select-none pt-24 md:pt-32"
     >
-      {/* Marca d'água monumental (#2F7335): camada de GPU própria e permanente, sem
-          filtros — o parallax só move a textura já rasterizada, sem repintar o SVG */}
+      {/* Marca d'água monumental (#2F7335), sem filtros. No desktop tem camada de GPU
+          própria: o parallax só move a textura já rasterizada, sem repintar o SVG */}
       <div
         ref={watermarkRef}
-        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center will-change-transform transform-gpu"
+        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center lg:will-change-transform lg:transform-gpu"
         aria-hidden="true"
       >
         <Image
@@ -185,9 +189,9 @@ export default function AboutSection() {
         </span>
       </div>
 
-      {/* Janela de Leitura com ScrollTrigger Pin */}
-      <div className="w-full max-w-xl lg:max-w-2xl h-[68vh] sm:h-[70vh] md:h-[72vh] overflow-hidden relative flex flex-col justify-start">
-        <div ref={scrollContainerRef} className="flex flex-col gap-20 sm:gap-24 py-10 md:py-12">
+      {/* Janela de Leitura: pin com ScrollTrigger no desktop; fluxo normal no mobile/tablet */}
+      <div className="w-full max-w-xl lg:max-w-2xl lg:h-[72vh] lg:overflow-hidden relative flex flex-col justify-start">
+        <div ref={scrollContainerRef} className="flex flex-col gap-14 sm:gap-20 lg:gap-24 py-10 md:py-12">
           {NARRATIVE_BLOCKS.map((item, index) => (
             <div
               key={index}

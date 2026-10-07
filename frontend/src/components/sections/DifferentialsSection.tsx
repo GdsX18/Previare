@@ -125,7 +125,7 @@ export default function DifferentialsSection() {
 
       {/* Película escura para contraste ideal */}
       <div
-        className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-none -z-0"
+        className="absolute inset-0 bg-black/45 md:backdrop-blur-[2px] pointer-events-none -z-0"
         aria-hidden="true"
       />
 

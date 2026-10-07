@@ -180,15 +180,15 @@ export default function Footer() {
 
         {/* Focos de luz difusa para profundidade aveludada e reflexo luminoso */}
         <div
-          className="absolute top-24 right-10 w-[750px] h-[750px] bg-[radial-gradient(circle,rgba(14,124,90,0.38)_0%,transparent_70%)] blur-[140px] pointer-events-none"
+          className="absolute top-24 right-10 w-[750px] h-[750px] bg-[radial-gradient(circle,rgba(14,124,90,0.38)_0%,transparent_70%)] md:blur-[140px] pointer-events-none"
           aria-hidden="true"
         />
         <div
-          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] bg-[radial-gradient(circle,rgba(124,229,119,0.14)_0%,transparent_70%)] blur-[150px] pointer-events-none"
+          className="absolute top-1/4 left-1/3 w-[650px] h-[650px] bg-[radial-gradient(circle,rgba(124,229,119,0.14)_0%,transparent_70%)] md:blur-[150px] pointer-events-none"
           aria-hidden="true"
         />
         <div
-          className="absolute bottom-10 left-10 w-[550px] h-[550px] bg-[radial-gradient(circle,rgba(14,77,52,0.28)_0%,transparent_70%)] blur-[130px] pointer-events-none"
+          className="absolute bottom-10 left-10 w-[550px] h-[550px] bg-[radial-gradient(circle,rgba(14,77,52,0.28)_0%,transparent_70%)] md:blur-[130px] pointer-events-none"
           aria-hidden="true"
         />
 
