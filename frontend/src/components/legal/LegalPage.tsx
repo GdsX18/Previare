@@ -54,6 +54,19 @@ export default function LegalPage({ eyebrow, title, updatedAt, children }: Legal
               {SITE_CONFIG.email}
             </a>
           </p>
+          {SITE_CONFIG.social.instagram && (
+            <p>
+              Instagram:{' '}
+              <a
+                className="underline hover:text-[#2F7335]"
+                href={SITE_CONFIG.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                @previarebrasil
+              </a>
+            </p>
+          )}
         </footer>
       </main>
     </div>

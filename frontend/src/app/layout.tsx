@@ -114,6 +114,8 @@ export const metadata: Metadata = {
   },
 };
 
+const sameAs = Object.values(SITE_CONFIG.social).filter(Boolean);
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -129,6 +131,7 @@ const jsonLd = {
       description:
         "Assessoria técnica, cálculos atuariais e planejamento personalizado de aposentadorias e benefícios previdenciários no Brasil.",
       ...(SITE_CONFIG.phoneE164 ? { telephone: `+${SITE_CONFIG.phoneE164}` } : {}),
+      ...(sameAs.length ? { sameAs } : {}),
       address: {
         "@type": "PostalAddress",
         addressLocality: SITE_CONFIG.city,

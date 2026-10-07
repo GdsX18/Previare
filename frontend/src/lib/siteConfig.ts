@@ -30,7 +30,7 @@ export const SITE_CONFIG = {
   social: {
     /** URL completa do perfil oficial. Vazio = ícone não é exibido. */
     linkedin: '',
-    instagram: '',
+    instagram: 'https://www.instagram.com/previarebrasil/',
   },
 };
 
