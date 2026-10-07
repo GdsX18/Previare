@@ -101,7 +101,13 @@ export default function PoliticaDePrivacidadePage() {
         <li>revogação de consentimento, quando ele for a base do tratamento.</li>
       </ul>
       <p>
-        Basta escrever para <a href={`mailto:${SITE_CONFIG.email}`}>{SITE_CONFIG.email}</a>. Você também pode
+        Basta escrever para <a href={`mailto:${SITE_CONFIG.email}`}>{SITE_CONFIG.email}</a>
+        {SITE_CONFIG.phoneDisplay && SITE_CONFIG.phoneE164 ? (
+          <>
+            {' '}ou ligar para <a href={`tel:+${SITE_CONFIG.phoneE164}`}>{SITE_CONFIG.phoneDisplay}</a>
+          </>
+        ) : null}
+        . Você também pode
         apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).
       </p>
 

@@ -19,9 +19,9 @@ export const SITE_CONFIG = {
 
   email: 'contato@previare.com.br',
   /** Telefone exibido, ex.: '(21) 0000-0000'. Vazio = não exibe. */
-  phoneDisplay: '',
+  phoneDisplay: '(21) 99856-3305',
   /** Telefone em E.164 sem símbolos, ex.: '552100000000'. */
-  phoneE164: '',
+  phoneE164: '5521998563305',
 
   city: 'Rio de Janeiro',
   state: 'RJ',

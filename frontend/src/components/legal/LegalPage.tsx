@@ -54,6 +54,14 @@ export default function LegalPage({ eyebrow, title, updatedAt, children }: Legal
               {SITE_CONFIG.email}
             </a>
           </p>
+          {SITE_CONFIG.phoneDisplay && SITE_CONFIG.phoneE164 && (
+            <p>
+              Telefone / WhatsApp:{' '}
+              <a className="underline hover:text-[#2F7335]" href={`tel:+${SITE_CONFIG.phoneE164}`}>
+                {SITE_CONFIG.phoneDisplay}
+              </a>
+            </p>
+          )}
           {SITE_CONFIG.social.instagram && (
             <p>
               Instagram:{' '}
