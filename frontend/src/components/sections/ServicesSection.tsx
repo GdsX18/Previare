@@ -5,123 +5,116 @@ import { deferScrollSetup, willChangeWhileActive } from '@/lib/gsap';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 import type { ContactSubject } from '@/lib/specialistContact';
 
-interface Service {
-  title: string;
-  description: string;
-}
-
-interface Journey {
-  /** Momento de vida em que a pessoa se reconhece */
-  title: string;
-  lead: string;
-  cta: string;
-  /** Assunto pré-selecionado no modal de atendimento */
-  subject: ContactSubject;
-  services: Service[];
-}
-
-// Os 14 serviços agrupados em 4 jornadas, alinhadas às abas do simulador e aos
-// assuntos do modal: o visitante procura pelo seu momento, não pelo nome técnico.
-const JOURNEYS: Journey[] = [
+const SERVICES_ALL = [
   {
-    title: 'Antes de me aposentar',
-    lead: 'Para quem quer decidir quando e como pedir, com todos os números na mesa.',
-    cta: 'Planejar minha aposentadoria',
-    subject: 'Planejamento Previdenciário',
-    services: [
-      {
-        title: 'Planejamento previdenciário',
-        description: 'Estudo atuarial do seu histórico para escolher a regra e o momento mais vantajosos.',
-      },
-      {
-        title: 'Aposentadorias e regras de transição',
-        description: 'Idade, tempo de contribuição e transições pós-Reforma, conduzidas do início ao fim.',
-      },
-      {
-        title: 'Análise do CNIS',
-        description: 'Auditoria linha a linha para achar vínculos faltantes e remunerações inconsistentes.',
-      },
-      {
-        title: 'Acertos previdenciários',
-        description: 'Tratamento de PREM-EXT, vínculos sem data de término e contribuições abaixo do piso.',
-      },
-      {
-        title: 'Tempo especial e documentação',
-        description: 'Qualificação de PPP, LTCAT, carteiras e provas de atividade rural ou autônoma.',
-      },
-      {
-        title: 'Simulações comparativas',
-        description: 'Todos os cenários legais calculados lado a lado, antes de qualquer protocolo.',
-      },
-    ],
+    category: 'CONCESSÃO E REGRAS',
+    title: 'APOSENTADORIAS : ESTRATÉGIA PARA O BENEFÍCIO MÁXIMO',
+    description:
+      'Planejamento e condução integral de aposentadorias por idade, tempo de contribuição e regras de transição pós-Reforma, assegurando a regra mais vantajosa.',
   },
   {
-    title: 'Já sou aposentado',
-    lead: 'Para quem já recebe e quer ter certeza de que o INSS considerou tudo.',
-    cta: 'Conferir meu benefício',
-    subject: 'Revisão de Aposentadoria Concedida',
-    services: [
-      {
-        title: 'Revisão de benefícios',
-        description: 'Auditoria do cálculo inicial: períodos ignorados, salários fora da média e teses aplicáveis.',
-      },
-      {
-        title: 'Serviços administrativos no INSS',
-        description: 'Cumprimento de exigências, CTC, recursos à Junta e cópias integrais de processos.',
-      },
-      {
-        title: 'Consultoria individual',
-        description: 'Orientação didática sobre o seu benefício e o impacto de qualquer mudança.',
-      },
-    ],
+    category: 'ESTRATÉGIA ATUARIAL',
+    title: 'PLANEJAMENTO PREVIDENCIÁRIO : DECISÃO BASEADA EM DADOS',
+    description:
+      'Estudo atuarial personalizado que analisa histórico, projeções financeiras e retorno sobre investimento contributivo para evitar perdas prematuras.',
   },
   {
-    title: 'Saúde e família',
-    lead: 'Para os momentos em que a proteção previdenciária precisa chegar rápido.',
-    cta: 'Falar sobre o meu caso',
-    subject: 'Benefício por Incapacidade ou BPC / LOAS',
-    services: [
-      {
-        title: 'Benefícios por incapacidade',
-        description: 'Acompanhamento documental e pericial do auxílio temporário e da aposentadoria por incapacidade.',
-      },
-      {
-        title: 'Auxílio-acidente',
-        description: 'Indenização a quem ficou com sequela permanente após acidente, cumulável com o salário.',
-      },
-      {
-        title: 'Pensão por morte',
-        description: 'Orientação aos dependentes sobre enquadramento, duração e cota familiar.',
-      },
-      {
-        title: 'BPC / LOAS',
-        description: 'Benefício assistencial para idosos e pessoas com deficiência em situação de vulnerabilidade.',
-      },
-    ],
+    category: 'AUDITORIA DE DADOS',
+    title: 'ANÁLISE DE CNIS : AUDITORIA MINUCIOSA DE REGISTROS',
+    description:
+      'Inspeção aprofundada do extrato previdenciário para identificar vínculos faltantes, remunerações inconsistentes e períodos extemporâneos antes do protocolo.',
   },
   {
-    title: 'Para escritórios e empresas',
-    lead: 'Suporte técnico a colegas advogados e departamentos de pessoas.',
-    cta: 'Propor uma parceria',
-    subject: 'Outro Assunto Previdenciário',
-    services: [
-      {
-        title: 'Parcerias especializadas',
-        description: 'Cálculos atuariais, pareceres fundamentados e apoio em casos de alta complexidade.',
-      },
-    ],
+    category: 'PROJEÇÕES MATEMÁTICAS',
+    title: 'SIMULAÇÕES PREVIDENCIÁRIAS : CENÁRIOS COMPARATIVOS',
+    description:
+      'Cálculo analítico de todos os cenários legais possíveis para determinar com exatidão matemática o momento ideal de requerer seu direito.',
+  },
+  {
+    category: 'REGULARIZAÇÃO',
+    title: 'ACERTOS PREVIDENCIÁRIOS : ELIMINAÇÃO DE PENDÊNCIAS',
+    description:
+      'Tratamento técnico de indicadores restritivos como PREM-EXT, vínculos sem data de término e contribuições abaixo do piso constitucional.',
+  },
+  {
+    category: 'REVISÃO DE RENDA',
+    title: 'REVISÕES DE BENEFÍCIOS : RESGATE DO VALOR LEGÍTIMO',
+    description:
+      'Auditoria de benefícios ativos para identificar equívocos no cálculo inicial, períodos ignorados pelo INSS e teses jurídicas de majoração.',
+  },
+  {
+    category: 'AMPARO SOCIAL',
+    title: 'BPC / LOAS : GARANTIA DO AMPARO CONSTITUCIONAL',
+    description:
+      'Estruturação probatória completa para concessão do benefício assistencial a idosos e pessoas com deficiência em situação de vulnerabilidade.',
+  },
+  {
+    category: 'PROTEÇÃO À SAÚDE',
+    title: 'BENEFÍCIOS POR INCAPACIDADE : APOIO EM MOMENTOS CRÍTICOS',
+    description:
+      'Acompanhamento documental e pericial para auxílio por incapacidade temporária e aposentadoria por incapacidade permanente.',
+  },
+  {
+    category: 'INDENIZAÇÃO LABORAL',
+    title: 'AUXÍLIO-ACIDENTE : COMPENSAÇÃO POR SEQUELA PERMANENTE',
+    description:
+      'Requerimento do benefício de natureza indenizatória pago ao trabalhador que sofreu redução de capacidade laboral após acidente, cumulável com salário.',
+  },
+  {
+    category: 'SEGURANÇA FAMILIAR',
+    title: 'PENSÃO POR MORTE : PROTEÇÃO PARA QUEM VOCÊ AMA',
+    description:
+      'Orientação ágil e precisa para dependentes previdenciários, assegurando o correto enquadramento de duração e cota familiar justa.',
+  },
+  {
+    category: 'CONSULTORIA PESSOAL',
+    title: 'CONSULTORIA PREVIDENCIÁRIA : ORIENTAÇÃO INDIVIDUALIZADA',
+    description:
+      'Atendimento consultivo e didático para quem busca clareza sobre trajetória contributiva, mudanças de carreira e impactos no futuro.',
+  },
+  {
+    category: 'GESTÃO ADMINISTRATIVA',
+    title: 'SERVIÇOS ADMINISTRATIVOS : DESBUROCRATIZAÇÃO NO INSS',
+    description:
+      'Cumprimento de exigências, emissão de Certidão de Tempo de Contribuição (CTC), recursos à Junta e cópias de processos integrais.',
+  },
+  {
+    category: 'DOSSIÊ PROBATÓRIO',
+    title: 'ORIENTAÇÃO DOCUMENTAL : QUALIFICAÇÃO DE PROVAS',
+    description:
+      'Análise rigorosa de carteiras profissionais, laudos PPP/LTCAT para tempo especial e documentação de atividade rural ou autônoma.',
+  },
+  {
+    category: 'COOPERAÇÃO TÉCNICA',
+    title: 'PARCERIAS ESPECIALIZADAS : SUPORTE ATUARIAL ESTRATÉGICO',
+    description:
+      'Apoio técnico de alta complexidade para escritórios de advocacia e empresas, com cálculos atuariais e pareceres fundamentados.',
   },
 ];
+
+// Assunto pré-selecionado no modal de atendimento conforme a categoria do serviço
+const SUBJECT_BY_CATEGORY: Record<string, ContactSubject> = {
+  'CONCESSÃO E REGRAS': 'Planejamento Previdenciário',
+  'ESTRATÉGIA ATUARIAL': 'Planejamento Previdenciário',
+  'PROJEÇÕES MATEMÁTICAS': 'Planejamento Previdenciário',
+  'CONSULTORIA PESSOAL': 'Planejamento Previdenciário',
+  'AUDITORIA DE DADOS': 'Auditoria de CNIS e Vínculos',
+  'REGULARIZAÇÃO': 'Auditoria de CNIS e Vínculos',
+  'DOSSIÊ PROBATÓRIO': 'Tempo Especial & Insalubridade (PPP)',
+  'REVISÃO DE RENDA': 'Revisão de Aposentadoria Concedida',
+  'AMPARO SOCIAL': 'Benefício por Incapacidade ou BPC / LOAS',
+  'PROTEÇÃO À SAÚDE': 'Benefício por Incapacidade ou BPC / LOAS',
+};
 
 export default function ServicesSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { openSpecialistModal } = useSpecialistModal();
 
-  const handleJourneyCta = (e: React.MouseEvent<HTMLAnchorElement>, journey: Journey) => {
+  const handleServiceCta = (e: React.MouseEvent<HTMLAnchorElement>, item: (typeof SERVICES_ALL)[number]) => {
     e.preventDefault();
     openSpecialistModal({
-      subject: journey.subject,
-      origin: `Serviços · ${journey.title}`,
+      subject: SUBJECT_BY_CATEGORY[item.category] ?? 'Outro Assunto Previdenciário',
+      origin: `Serviços · ${item.title.split(':')[0].trim()}`,
     });
   };
   const glowRef = useRef<HTMLDivElement>(null);
@@ -215,49 +208,44 @@ export default function ServicesSection() {
         </span>
       </div>
 
-      {/* ─── DESKTOP: Trilho horizontal com GSAP ScrollTrigger (uma jornada por tela) ─── */}
+      {/* ─── DESKTOP: Trilho horizontal com GSAP ScrollTrigger ─── */}
       <div className="hidden lg:block h-screen">
         <div className="flex w-max h-full z-10 relative">
-          {JOURNEYS.map((journey, index) => (
+          {SERVICES_ALL.map((item, index) => (
             <div
-              key={journey.title}
-              className="service-clean-slide w-screen h-full grid grid-cols-12 gap-16 px-28 pt-40 pb-16 relative shrink-0"
+              key={index}
+              className="service-clean-slide w-screen h-full flex flex-col justify-between px-28 pt-44 pb-20 relative shrink-0"
             >
-              <div className="col-span-5 flex flex-col justify-center">
-                <span className="text-sm font-sans tracking-[0.25em] text-white/50 uppercase">
-                  {String(index + 1).padStart(2, '0')} / {String(JOURNEYS.length).padStart(2, '0')}
+              <div>
+                <span className="text-xs font-sans tracking-[0.25em] text-white/40 uppercase">
+                  {item.category}
                 </span>
-                <h2
-                  className="mt-6 font-serif font-light text-white/95 leading-[0.98] tracking-tight"
-                  style={{ fontSize: 'clamp(2.75rem, 4.6vw, 5.25rem)' }}
-                >
-                  {journey.title}
-                </h2>
-                <p className="mt-6 max-w-md font-sans text-lg text-white/75 font-light leading-relaxed">
-                  {journey.lead}
-                </p>
-                <a
-                  href="#contato"
-                  onClick={(e) => handleJourneyCta(e, journey)}
-                  className="group mt-10 inline-flex w-fit items-center gap-3 text-base font-sans tracking-[0.15em] text-[#7CE577] uppercase font-medium hover:text-white transition-colors duration-300"
-                >
-                  <span>{journey.cta}</span>
-                  <span className="w-6 h-[1px] bg-[#7CE577] group-hover:w-10 group-hover:bg-white transition-all duration-300" />
-                </a>
               </div>
 
-              <ul className="col-span-7 flex flex-col justify-center border-t border-white/[0.1] self-center w-full">
-                {journey.services.map((service) => (
-                  <li key={service.title} className="border-b border-white/[0.1] py-4 xl:py-5">
-                    <h3 className="font-serif text-2xl xl:text-[1.75rem] font-light text-white/95 leading-tight">
-                      {service.title}
-                    </h3>
-                    <p className="mt-1.5 font-sans text-base text-white/65 font-light leading-relaxed">
-                      {service.description}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <div className="max-w-5xl my-auto">
+                <h2
+                  className="font-serif font-light text-white/95 uppercase leading-[0.98] tracking-tight"
+                  style={{ fontSize: 'clamp(2.5rem, 5vw, 5.5rem)' }}
+                >
+                  {item.title}
+                </h2>
+              </div>
+
+              <div className="flex justify-end pb-8">
+                <div className="max-w-lg text-right flex flex-col items-end">
+                  <p className="font-sans text-base text-white/75 font-light leading-relaxed">
+                    {item.description}
+                  </p>
+                  <a
+                    href="#contato"
+                    onClick={(e) => handleServiceCta(e, item)}
+                    className="group mt-6 inline-flex items-center gap-3 text-sm font-sans tracking-[0.25em] text-[#7CE577] uppercase font-medium hover:text-white transition-colors duration-300"
+                  >
+                    <span>Falar sobre este serviço</span>
+                    <span className="w-6 h-[1px] bg-[#7CE577] group-hover:w-10 group-hover:bg-white transition-all duration-300" />
+                  </a>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -265,41 +253,29 @@ export default function ServicesSection() {
 
       {/* ─── MOBILE + TABLET: Lista vertical nativa ─── */}
       <div className="lg:hidden flex flex-col pt-36 pb-16">
-        {JOURNEYS.map((journey, index) => (
+        {SERVICES_ALL.map((item, index) => (
           <div
-            key={journey.title}
-            className="flex flex-col px-6 sm:px-14 py-12 sm:py-16 border-b border-white/[0.07] last:border-b-0"
+            key={index}
+            className="flex flex-col px-6 sm:px-14 py-10 sm:py-14 border-b border-white/[0.07] last:border-b-0"
           >
-            <span className="text-sm font-sans tracking-[0.25em] text-white/50 uppercase mb-4 block">
-              {String(index + 1).padStart(2, '0')} / {String(JOURNEYS.length).padStart(2, '0')}
+            <span className="text-xs font-sans tracking-[0.25em] text-white/40 uppercase mb-4 block">
+              {item.category}
             </span>
             <h2
-              className="font-serif font-light text-white/95 leading-[1.02] tracking-tight"
-              style={{ fontSize: 'clamp(2rem, 8vw, 3.25rem)' }}
+              className="font-serif font-light text-white/95 uppercase leading-[1.05] tracking-tight mb-5"
+              style={{ fontSize: 'clamp(1.6rem, 6.5vw, 3rem)' }}
             >
-              {journey.title}
+              {item.title}
             </h2>
-            <p className="mt-4 font-sans text-base sm:text-lg text-white/75 font-light leading-relaxed">
-              {journey.lead}
+            <p className="font-sans text-sm sm:text-base text-white/70 font-light leading-relaxed mb-6">
+              {item.description}
             </p>
-            <ul className="mt-8 border-t border-white/[0.1]">
-              {journey.services.map((service) => (
-                <li key={service.title} className="border-b border-white/[0.1] py-4">
-                  <h3 className="font-serif text-xl sm:text-2xl font-light text-white/95 leading-snug">
-                    {service.title}
-                  </h3>
-                  <p className="mt-1 font-sans text-base text-white/65 font-light leading-relaxed">
-                    {service.description}
-                  </p>
-                </li>
-              ))}
-            </ul>
             <a
               href="#contato"
-              onClick={(e) => handleJourneyCta(e, journey)}
-              className="mt-8 inline-flex items-center gap-3 text-sm font-sans tracking-[0.15em] text-[#7CE577] uppercase font-medium self-start min-h-[44px]"
+              onClick={(e) => handleServiceCta(e, item)}
+              className="inline-flex items-center gap-3 text-xs font-sans tracking-[0.25em] text-[#7CE577] uppercase font-medium self-start min-h-[44px]"
             >
-              <span>{journey.cta}</span>
+              <span>Falar sobre este serviço</span>
               <span className="w-5 h-[1px] bg-[#7CE577]" />
             </a>
           </div>
