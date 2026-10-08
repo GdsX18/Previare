@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Check, CheckCircle2 } from 'lucide-react';
+import { Check, CheckCircle2, Loader2 } from 'lucide-react';
 import { scrollToSection } from '@/lib/smoothScroll';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 import { SITE_CONFIG } from '@/lib/siteConfig';
@@ -11,9 +11,10 @@ import {
   CONTACT_LIMITS,
   EMAIL_PATTERN,
   formatBrazilianPhone,
+  LEAD_SUCCESS_MESSAGE,
   onlyDigits,
+  submitLead,
   type ContactSubject,
-  type SpecialistContactPayload,
 } from '@/lib/specialistContact';
 
 const FOOTER_SERVICES = [
@@ -25,7 +26,7 @@ const FOOTER_SERVICES = [
   'Diagnóstico Geral Completo',
 ] as const;
 
-// Assunto enviado à rota /api/contato conforme o primeiro serviço marcado
+// Assunto enviado a /api/leads conforme o primeiro serviço marcado
 const SUBJECT_BY_SERVICE: Record<string, ContactSubject> = {
   'Planejamento Previdenciário': 'Planejamento Previdenciário',
   'Auditoria de CNIS & Vínculos': 'Auditoria de CNIS e Vínculos',
@@ -83,44 +84,28 @@ export default function Footer() {
       return;
     }
 
-    // Todo o contexto do formulário segue no relato, no mesmo contrato do modal
-    const message = [
-      `Momento profissional: ${formData.careerStage}`,
-      `Serviços de interesse: ${formData.services.length ? formData.services.join(', ') : 'não informado'}`,
-      `Como conheceu: ${formData.source}`,
-      `Deseja agendar sessão de alinhamento: ${formData.scheduleSession ? 'Sim' : 'Não'}`,
-      formData.message.trim() ? `\nRelato: ${formData.message.trim()}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n')
-      .slice(0, CONTACT_LIMITS.message);
-
-    const payload: SpecialistContactPayload = {
-      subject: SUBJECT_BY_SERVICE[formData.services[0]] ?? 'Outro Assunto Previdenciário',
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      message,
-      origin: 'Footer · Formulário de contato',
-      website: formData.website,
-    };
-
     setError(null);
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/contato', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      await submitLead({
+        source: 'footer',
+        subject: SUBJECT_BY_SERVICE[formData.services[0]] ?? 'Outro Assunto Previdenciário',
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        careerStage: formData.careerStage,
+        services: formData.services,
+        referralSource: formData.source,
+        message: formData.message.trim().slice(0, CONTACT_LIMITS.message),
+        origin: 'Footer · Formulário de contato',
+        scheduleSession: formData.scheduleSession,
+        privacyConsent: formData.privacyAgreed,
+        website: formData.website,
       });
-      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
-      if (!res.ok || !data?.ok) {
-        setError(data?.error ?? 'Não foi possível enviar agora. Tente novamente em instantes.');
-        return;
-      }
+      setFormData(INITIAL_FORM);
       setSubmitted(true);
-    } catch {
-      setError('Sem conexão no momento. Verifique sua internet e tente novamente.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível enviar agora. Tente novamente em instantes.');
     } finally {
       setIsSubmitting(false);
     }
@@ -306,7 +291,7 @@ export default function Footer() {
                     Mensagem recebida
                   </h3>
                   <p className="text-base text-white/75 max-w-md mx-auto leading-relaxed">
-                    Recebemos seus dados sob sigilo profissional. Um especialista entrará em contato para apresentar os próximos passos.
+                    {LEAD_SUCCESS_MESSAGE}
                   </p>
                   <div className="pt-4">
                     <button
@@ -558,10 +543,12 @@ export default function Footer() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex items-center gap-3 bg-white/90 hover:bg-white text-[#020B06] text-sm font-semibold tracking-[0.2em] uppercase py-4 px-8 rounded-sm transition-all duration-300 shadow-sm cursor-pointer disabled:opacity-50"
+                      aria-busy={isSubmitting}
+                      className="inline-flex items-center gap-3 bg-white/90 hover:bg-white text-[#020B06] text-sm font-semibold tracking-[0.2em] uppercase py-4 px-8 rounded-sm transition-all duration-300 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                     >
-                      <span>{isSubmitting ? 'Enviando...' : 'Enviar Mensagem'}</span>
-                      <span className="text-sm font-mono leading-none">--</span>
+                      {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+                      <span>{isSubmitting ? 'Enviando dados...' : 'Enviar Mensagem'}</span>
+                      {!isSubmitting && <span className="text-sm font-mono leading-none">--</span>}
                     </button>
                   </div>
                 </form>

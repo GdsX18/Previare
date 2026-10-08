@@ -8,7 +8,9 @@ import {
   CONTACT_SUBJECTS,
   EMAIL_PATTERN,
   formatBrazilianPhone,
+  LEAD_SUCCESS_MESSAGE,
   onlyDigits,
+  submitLead,
   type ContactSubject,
 } from '@/lib/specialistContact';
 
@@ -187,23 +189,21 @@ export default function SpecialistModal({
 
     setStatus('submitting');
     try {
-      const res = await fetch('/api/contato', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject,
-          name: name.trim(),
-          email: email.trim(),
-          phone,
-          message: message.trim(),
-          origin,
-          website,
-        }),
+      await submitLead({
+        // O simulador abre este mesmo modal; a origem diferencia o canal no e-mail
+        source: origin?.startsWith('Simulador') ? 'simulator' : 'specialist_modal',
+        subject: subject ?? undefined,
+        name: name.trim(),
+        email: email.trim(),
+        phone,
+        message: message.trim(),
+        origin,
+        website,
       });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Não foi possível encaminhar sua solicitação agora.');
-      }
+      // Limpa os campos; o nome segue só para personalizar a confirmação
+      setEmail('');
+      setPhone('');
+      setMessage('');
       setStatus('success');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Não foi possível encaminhar sua solicitação agora.');
@@ -601,7 +601,7 @@ export default function SpecialistModal({
                     Recebemos o seu relato{name.trim() ? `, ${name.trim().split(' ')[0]}` : ''}.
                   </h2>
                   <p id={`${uid}-desc`} className="mt-4 max-w-xl text-[18px] leading-relaxed text-[#2B3D2E]">
-                    Seus dados já estão com os advogados da Previare. Vamos estudar a sua situação sobre{' '}
+                    {LEAD_SUCCESS_MESSAGE} Vamos estudar a sua situação sobre{' '}
                     <strong className="font-bold text-[#10200F]">{subject ? SUBJECT_COPY[subject].title : ''}</strong> com toda a atenção.
                   </p>
 

@@ -1,6 +1,7 @@
 /**
- * Contrato compartilhado entre o modal "Falar com Especialista" (cliente)
- * e a rota interna /api/contato (servidor).
+ * Contrato compartilhado entre os formulários de captação (rodapé, modal
+ * "Falar com Especialista" e simulador) e o endpoint /api/leads, que a rota
+ * do Next encaminha para o backend (backend/src/leads/dto/create-lead.dto.ts).
  */
 
 export const CONTACT_SUBJECTS = [
@@ -23,25 +24,53 @@ export const CONTACT_LIMITS = {
   origin: 80,
 } as const;
 
-export interface SpecialistContactPayload {
-  subject: ContactSubject;
+/** Canal de captação, exibido no e-mail como "Origem do Lead". */
+export type LeadSource = 'footer' | 'specialist_modal' | 'simulator';
+
+export interface LeadPayload {
+  source: LeadSource;
   name: string;
   email: string;
   phone: string;
+  subject?: ContactSubject;
+  careerStage?: string;
+  services?: string[];
+  referralSource?: string;
   message?: string;
+  /** Ponto exato do site, ex.: "Navbar · Falar com Especialista". */
   origin?: string;
+  scheduleSession?: boolean;
+  /** Aceite explícito da Política de Privacidade. */
+  privacyConsent?: boolean;
   /** Honeypot anti-spam: deve chegar sempre vazio. */
   website?: string;
+}
+
+export const LEAD_SUCCESS_MESSAGE =
+  'Solicitação enviada com sucesso! Nossos advogados especialistas entrarão em contato em breve.';
+
+/** Envia o lead para /api/leads. Lança Error com mensagem pronta para o usuário. */
+export async function submitLead(payload: LeadPayload): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('Sem conexão no momento. Verifique sua internet e tente novamente.');
+  }
+  const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || 'Não foi possível enviar agora. Tente novamente em instantes.');
+  }
 }
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, '');
-}
-
-export function isContactSubject(value: unknown): value is ContactSubject {
-  return typeof value === 'string' && (CONTACT_SUBJECTS as readonly string[]).includes(value);
 }
 
 /** Formata progressivamente um telefone brasileiro: (11) 91234-5678 / (11) 1234-5678. */

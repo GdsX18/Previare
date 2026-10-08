@@ -1,11 +1,14 @@
 import { plainToInstance, Type } from 'class-transformer';
 import {
+  IsEmail,
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   Matches,
+  Max,
   Min,
   validateSync,
 } from 'class-validator';
@@ -46,6 +49,36 @@ class EnvironmentVariables {
   @IsInt()
   @Min(0)
   THROTTLE_LIMIT: number = 100;
+
+  // ── E-mail transacional (notificação de novos leads) ──────────────────────
+  // Sem MAIL_HOST o lead continua sendo salvo, mas o e-mail não é enviado
+  // (em desenvolvimento o conteúdo é apenas registrado no log).
+
+  @IsEmail()
+  MAIL_TO: string = 'contato@amoadvogados.com.br';
+
+  @IsOptional()
+  @IsString()
+  MAIL_HOST?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  MAIL_PORT: number = 587;
+
+  @IsOptional()
+  @IsString()
+  MAIL_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  MAIL_PASS?: string;
+
+  // Remetente autorizado no provedor SMTP, ex.: 'Previare Notificações <noreply@amoadvogados.com.br>'
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
 }
 
 export type Env = EnvironmentVariables;

@@ -36,13 +36,23 @@ model PreviareContact {
   status                ContactStatus @default(PENDING)
   tempoContribuicaoAnos Int?
   mensagem              String?
+  /// Canal de captação: footer | specialist_modal | simulator
   origem                String        @default("landing-page")
+  /// Ponto exato do site em que o lead foi gerado (ex.: "Navbar · Falar com Especialista")
+  origemDetalhe         String?
+  assunto               String?
+  momentoProfissional   String?
+  servicosInteresse     String[]      @default([])
+  comoConheceu          String?
+  desejaAgendamento     Boolean       @default(false)
+  consentimentoLgpd     Boolean       @default(false)
   ipOrigem              String?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
   @@index([email])
   @@index([status])
+  @@index([origem])
   @@index([createdAt])
   @@map("previare_contacts")
 }
