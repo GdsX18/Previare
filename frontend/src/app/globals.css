@@ -40,6 +40,8 @@
 }
 
 html {
+  /* Base escura sob o canvas: nenhuma seção cai em fundo branco se o WebGL não pintar */
+  background-color: #020B07;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

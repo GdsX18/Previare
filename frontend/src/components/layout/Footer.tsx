@@ -170,7 +170,7 @@ export default function Footer() {
 
       <footer
         id="contato"
-        className="footer-clean-root relative w-full overflow-hidden text-white select-none bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#0E4D34] via-[#062417] to-[#020C07]"
+        className="footer-clean-root relative w-full overflow-hidden text-white select-none isolate bg-[#020B07] bg-[radial-gradient(ellipse_at_top_right,#0E4D34_0%,#062417_45%,#020C07_100%)]"
       >
         {/* Costura com a seção anterior: o topo parte do mesmo tom em que o Próximo Passo termina */}
         <div
@@ -343,7 +343,7 @@ export default function Footer() {
                         placeholder="Seu nome"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-[#7CE577] outline-none transition-colors"
                       />
                     </div>
 
@@ -357,7 +357,7 @@ export default function Footer() {
                         placeholder="seu.email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-[#7CE577] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -374,7 +374,7 @@ export default function Footer() {
                         placeholder="(21) 90000-0000"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: formatBrazilianPhone(e.target.value) })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-[#7CE577] outline-none transition-colors"
                       />
                     </div>
 
@@ -386,7 +386,7 @@ export default function Footer() {
                         <select
                           value={formData.careerStage}
                           onChange={(e) => setFormData({ ...formData, careerStage: e.target.value })}
-                          className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
+                          className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-[#7CE577] outline-none transition-colors cursor-pointer appearance-none pr-6"
                         >
                           <option className="bg-[#062417] text-white" value="Próximo à Aposentadoria (50+ anos)">
                             Próximo à Aposentadoria (50+ anos)
@@ -458,7 +458,7 @@ export default function Footer() {
                       <select
                         value={formData.source}
                         onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-white outline-none transition-colors cursor-pointer appearance-none pr-6"
+                        className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white focus:border-[#7CE577] outline-none transition-colors cursor-pointer appearance-none pr-6"
                       >
                         <option className="bg-[#062417] text-white" value="Busca no Google / Internet">
                           Busca no Google / Internet
@@ -489,7 +489,7 @@ export default function Footer() {
                       placeholder="Ex: Contribuo há 33 anos e gostaria de avaliar as regras de transição..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-white outline-none transition-colors"
+                      className="w-full bg-transparent border-b border-white/20 pb-2 text-base text-white placeholder-white/40 focus:border-[#7CE577] outline-none transition-colors"
                     />
                   </div>
 
