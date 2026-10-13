@@ -16,10 +16,20 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  // Compressão gzip de HTML/JS/CSS no `next start` (brotli, se desejado, deve
+  // ser feito no proxy/CDN à frente do Next, com `compress: false`)
+  compress: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+  experimental: {
+    // Importa apenas os módulos usados (lucide-react já é otimizado por padrão)
+    optimizePackageImports: ["framer-motion", "gsap"],
+  },
   images: {
+    // AVIF preferido, WebP como fallback
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2678400, // 31 dias para as imagens otimizadas
     remotePatterns: [
       {
         protocol: "https",
@@ -29,6 +39,16 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        // Fontes e imagens estáticas de /public: cache longo no navegador/CDN
+        source: "/:dir(fonts|images)/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=2592000, stale-while-revalidate=86400",
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [

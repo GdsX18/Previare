@@ -1,15 +1,9 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
+import { deferScrollSetup, willChangeWhileActive } from '@/lib/gsap';
 import { useSpecialistModal } from '@/components/contact/SpecialistModalProvider';
 import type { ContactSubject } from '@/lib/specialistContact';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 const SERVICES_ALL = [
   {
@@ -125,60 +119,73 @@ export default function ServicesSection() {
   };
   const glowRef = useRef<HTMLDivElement>(null);
 
-  // Glow do cursor — scoped ao container (não ao window)
-  useEffect(() => {
-    const glow = glowRef.current;
-    const container = containerRef.current;
-    if (!glow || !container) return;
+  // Glow do cursor e trilho horizontal: setup diferido para após a hidratação
+  // (prioriza FCP/LCP), com GSAP carregado sob demanda.
+  useEffect(
+    () =>
+      deferScrollSetup(({ gsap }) => {
+        const glow = glowRef.current;
+        const container = containerRef.current;
+        if (!glow || !container) return;
 
-    const setGlowX = gsap.quickTo(glow, 'left', { duration: 0.7, ease: 'power3.out' });
-    const setGlowY = gsap.quickTo(glow, 'top', { duration: 0.7, ease: 'power3.out' });
+        // ── Glow do cursor — scoped ao container (não ao window).
+        // Anima x/y (transform, composto na GPU) em vez de left/top (layout a cada frame).
+        const setGlowX = gsap.quickTo(glow, 'x', { duration: 0.7, ease: 'power3.out' });
+        const setGlowY = gsap.quickTo(glow, 'y', { duration: 0.7, ease: 'power3.out' });
 
-    const handlePointerMove = (e: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
-      setGlowX(e.clientX - rect.left);
-      setGlowY(e.clientY - rect.top);
-    };
+        // A posição do container só muda com scroll/resize: cacheia o rect e o
+        // invalida nesses eventos, em vez de ler getBoundingClientRect() a cada
+        // pointermove (reflow forçado intercalado com as escritas do quickTo).
+        let rect: DOMRect | null = null;
+        const invalidateRect = () => {
+          rect = null;
+        };
 
-    container.addEventListener('pointermove', handlePointerMove, { passive: true });
-    return () => container.removeEventListener('pointermove', handlePointerMove);
-  }, []);
+        const handlePointerMove = (e: PointerEvent) => {
+          if (!rect) rect = container.getBoundingClientRect();
+          setGlowX(e.clientX - rect.left);
+          setGlowY(e.clientY - rect.top);
+        };
 
-  // ScrollTrigger horizontal — apenas em desktop via matchMedia
-  useGSAP(
-    () => {
-      const slides = gsap.utils.toArray<HTMLElement>('.service-clean-slide');
-      if (!slides.length || !containerRef.current) return;
+        container.addEventListener('pointermove', handlePointerMove, { passive: true });
+        window.addEventListener('scroll', invalidateRect, { passive: true });
+        window.addEventListener('resize', invalidateRect, { passive: true });
 
-      const mm = gsap.matchMedia();
+        // ── ScrollTrigger horizontal — apenas em desktop via matchMedia
+        const slides = gsap.utils.toArray<HTMLElement>('.service-clean-slide', container);
+        const mm = gsap.matchMedia(container);
+        if (slides.length) {
+          mm.add('(min-width: 1024px)', () => {
+            const total = slides.length;
 
-      mm.add('(min-width: 1024px)', () => {
-        const total = slides.length;
-
-        gsap.to(slides, {
-          xPercent: -100 * (total - 1),
-          ease: 'none',
-          scrollTrigger: {
-            trigger: containerRef.current,
-            pin: true,
-            scrub: 1.2,
-            snap: 1 / (total - 1),
-            start: 'top top',
-            end: () => `+=${window.innerWidth * (total * 0.7)}`,
-            invalidateOnRefresh: true,
-          },
-        });
+            // O revert do matchMedia mata este tween e o seu ScrollTrigger
+            gsap.to(slides, {
+              xPercent: -100 * (total - 1),
+              ease: 'none',
+              scrollTrigger: {
+                trigger: container,
+                pin: true,
+                scrub: 1.2,
+                snap: 1 / (total - 1),
+                start: 'top top',
+                end: () => `+=${window.innerWidth * (total * 0.7)}`,
+                invalidateOnRefresh: true,
+                // Camadas de GPU só enquanto o trilho horizontal está pinado
+                onToggle: willChangeWhileActive(slides, 'transform'),
+              },
+            });
+          });
+        }
 
         return () => {
-          ScrollTrigger.getAll().forEach((st) => {
-            if (st.trigger === containerRef.current) st.kill();
-          });
+          container.removeEventListener('pointermove', handlePointerMove);
+          window.removeEventListener('scroll', invalidateRect);
+          window.removeEventListener('resize', invalidateRect);
+          gsap.killTweensOf(glow);
+          mm.revert();
         };
-      });
-
-      return () => mm.revert();
-    },
-    { scope: containerRef }
+      }),
+    []
   );
 
   return (
@@ -191,7 +198,7 @@ export default function ServicesSection() {
       {/* Luz orgânica do cursor — apenas desktop */}
       <div
         ref={glowRef}
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full bg-[radial-gradient(circle,rgba(14,124,90,0.22)_0%,rgba(110,243,119,0.05)_45%,transparent_75%)] blur-[90px] z-0 hidden lg:block"
+        className="pointer-events-none absolute left-0 top-0 will-change-transform -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full bg-[radial-gradient(circle,rgba(14,124,90,0.22)_0%,rgba(110,243,119,0.05)_45%,transparent_75%)] blur-[90px] z-0 hidden lg:block"
       />
 
       {/* Identificador fixo no topo */}

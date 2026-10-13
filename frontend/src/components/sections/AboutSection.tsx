@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
-import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { deferScrollSetup, willChangeWhileActive, type Gsap } from "@/lib/gsap";
 
 const NARRATIVE_BLOCKS = [
   {
@@ -37,102 +37,119 @@ export default function AboutSection() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const watermarkRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(
-    () => {
-      if (!sectionRef.current || !scrollContainerRef.current) return;
+  function setupScroll(gsap: Gsap) {
+    if (!sectionRef.current || !scrollContainerRef.current) return;
 
-      const container = scrollContainerRef.current;
-      const parent = container.parentElement;
-      if (!parent) return;
+    const container = scrollContainerRef.current;
+    const parent = container.parentElement;
+    if (!parent) return;
 
-      const viewportHeight = parent.clientHeight;
-      const totalScroll = container.scrollHeight - viewportHeight + 48;
-      if (totalScroll <= 0) return;
+    // ── FASE DE LEITURA: todas as medições geométricas em lote, antes de
+    // qualquer escrita no DOM (pin-spacer, gsap.set), evitando reflow forçado.
+    const viewportHeight = parent.clientHeight;
+    const totalScroll = container.scrollHeight - viewportHeight + 48;
+    if (totalScroll <= 0) return;
 
-      // Linha do tempo contínua e sem degraus para scroll fluido
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          pin: true,
-          scrub: 0.6, // Resposta ágil e natural ao gesto do usuário
-          start: "top top",
-          end: () => `+=${Math.round(totalScroll * 1.6)}`,
-          invalidateOnRefresh: true,
-        },
-      });
+    const items = Array.from(container.querySelectorAll<HTMLElement>(".narrative-item"));
+    const itemCenters = items.map((item) => item.offsetTop + item.clientHeight / 2);
 
-      // Movimento perfeitamente uniforme por toda a extensão da timeline (duration: 1)
+    // ── FASE DE ESCRITA
+    // Linha do tempo contínua e sem degraus para scroll fluido
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        pin: true,
+        scrub: 0.6, // Resposta ágil e natural ao gesto do usuário
+        start: "top top",
+        end: () => `+=${Math.round(totalScroll * 1.6)}`,
+        invalidateOnRefresh: true,
+        // Camadas de GPU só enquanto a seção está pinada
+        onToggle: willChangeWhileActive(
+          [container, ...items, watermarkRef.current].filter((el): el is HTMLElement => el !== null)
+        ),
+      },
+    });
+
+    // Movimento perfeitamente uniforme por toda a extensão da timeline (duration: 1)
+    tl.to(
+      container,
+      {
+        y: -totalScroll,
+        ease: "none",
+        duration: 1,
+      },
+      0
+    );
+
+    // Parallax sutil na marca d'água monumental
+    if (watermarkRef.current) {
       tl.to(
-        container,
+        watermarkRef.current,
         {
-          y: -totalScroll,
+          y: -40,
+          rotation: 1,
           ease: "none",
           duration: 1,
         },
         0
       );
+    }
 
-      // Parallax sutil na marca d'água monumental
-      if (watermarkRef.current) {
-        tl.to(
-          watermarkRef.current,
-          {
-            y: -40,
-            rotation: 1,
-            ease: "none",
-            duration: 1,
-          },
-          0
-        );
-      }
+    // Iluminação progressiva e suave de cada bloco baseada na sua posição real na janela
+    if (items.length > 0) {
+      // Inicializa opacidades
+      items.forEach((item, idx) => {
+        gsap.set(item, { opacity: idx === 0 ? 1 : 0.3 });
+      });
 
-      // Iluminação progressiva e suave de cada bloco baseada na sua posição real na janela
-      const items = container.querySelectorAll<HTMLElement>(".narrative-item");
-      if (items.length > 0) {
-        // Inicializa opacidades
-        items.forEach((item, idx) => {
-          gsap.set(item, { opacity: idx === 0 ? 1 : 0.3 });
-        });
+      items.forEach((item, idx) => {
+        const itemCenter = itemCenters[idx];
+        const targetCenter = viewportHeight / 2;
+        const scrollAtCenter = itemCenter - targetCenter;
+        const progressCenter = Math.max(0, Math.min(1, scrollAtCenter / totalScroll));
+        const windowSpan = 0.14;
 
-        items.forEach((item, idx) => {
-          const itemCenter = item.offsetTop + item.clientHeight / 2;
-          const targetCenter = viewportHeight / 2;
-          const scrollAtCenter = itemCenter - targetCenter;
-          const progressCenter = Math.max(0, Math.min(1, scrollAtCenter / totalScroll));
-          const windowSpan = 0.14;
+        if (idx === 0) {
+          // Bloco inicial começa em destaque e esmaece suavemente ao subir
+          tl.to(
+            item,
+            { opacity: 0.3, ease: "power1.inOut", duration: 0.1 },
+            0.16
+          );
+        } else {
+          const startIn = Math.max(0, progressCenter - windowSpan);
+          const peak = progressCenter;
+          const endOut = Math.min(1, progressCenter + windowSpan);
 
-          if (idx === 0) {
-            // Bloco inicial começa em destaque e esmaece suavemente ao subir
+          // Entrada para foco integral
+          tl.to(
+            item,
+            { opacity: 1, ease: "power1.inOut", duration: Math.max(0.04, peak - startIn) },
+            startIn
+          );
+
+          // Saída para foco secundário (exceto último bloco)
+          if (idx < items.length - 1) {
             tl.to(
               item,
-              { opacity: 0.3, ease: "power1.inOut", duration: 0.1 },
-              0.16
+              { opacity: 0.3, ease: "power1.inOut", duration: Math.max(0.04, endOut - peak) },
+              peak
             );
-          } else {
-            const startIn = Math.max(0, progressCenter - windowSpan);
-            const peak = progressCenter;
-            const endOut = Math.min(1, progressCenter + windowSpan);
-
-            // Entrada para foco integral
-            tl.to(
-              item,
-              { opacity: 1, ease: "power1.inOut", duration: Math.max(0.04, peak - startIn) },
-              startIn
-            );
-
-            // Saída para foco secundário (exceto último bloco)
-            if (idx < items.length - 1) {
-              tl.to(
-                item,
-                { opacity: 0.3, ease: "power1.inOut", duration: Math.max(0.04, endOut - peak) },
-                peak
-              );
-            }
           }
-        });
-      }
-    },
-    { scope: sectionRef }
+        }
+      });
+    }
+  }
+
+  // Setup diferido para após a hidratação (prioriza FCP/LCP), com GSAP
+  // carregado sob demanda; o contexto reverte tudo ao desmontar.
+  useEffect(
+    () =>
+      deferScrollSetup(({ gsap }) => {
+        const ctx = gsap.context(() => setupScroll(gsap), sectionRef.current ?? undefined);
+        return () => ctx.revert();
+      }),
+    []
   );
 
   return (
@@ -146,7 +163,7 @@ export default function AboutSection() {
       {/* Marca d'água monumental verde escura (#2F7335) com opacidade controlada */}
       <div
         ref={watermarkRef}
-        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center transition-opacity"
+        className="absolute -left-12 sm:-left-20 lg:-left-32 top-1/2 -translate-y-1/2 w-[540px] md:w-[780px] lg:w-[940px] h-[540px] md:h-[780px] lg:h-[940px] pointer-events-none select-none opacity-[0.08] flex items-center justify-center"
         aria-hidden="true"
       >
         <Image
@@ -154,7 +171,6 @@ export default function AboutSection() {
           alt="Previare Marca d'água"
           width={940}
           height={940}
-          priority
           className="w-full h-full object-contain filter blur-[0.3px]"
         />
       </div>
@@ -172,7 +188,7 @@ export default function AboutSection() {
           {NARRATIVE_BLOCKS.map((item, index) => (
             <div
               key={index}
-              className="narrative-item space-y-4 border-l-2 border-[#2F7335]/35 pl-7 sm:pl-8 transition-opacity duration-300"
+              className="narrative-item space-y-4 border-l-2 border-[#2F7335]/35 pl-7 sm:pl-8"
             >
               <span className="block text-[11px] font-sans tracking-[0.25em] text-[#2F7335] uppercase font-semibold">
                 {item.tag}

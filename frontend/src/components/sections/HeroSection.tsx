@@ -1,58 +1,22 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
+import dynamic from "next/dynamic";
 import { ArrowDown } from "lucide-react";
-import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
-import SilkBackground from "@/components/canvas/SilkBackground";
+import { SilkFallback } from "@/components/canvas/fallbacks";
 
+// Shader WebGL fora do bundle inicial e fora do SSR: o HTML do servidor já
+// pinta a base estática em CSS, e o canvas assume após a hidratação.
+const SilkBackground = dynamic(() => import("@/components/canvas/SilkBackground"), {
+  ssr: false,
+  loading: () => <SilkFallback />,
+});
+
+// A intro (linhas do título, subtítulo e scroll) é animada via CSS em globals.css
+// (keyframes `hero-intro`), com a mesma coreografia da timeline GSAP original.
 export default function HeroSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(
-    () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-      tl.from(".hero-line-1", {
-        y: 35,
-        opacity: 0,
-        duration: 0.9,
-        delay: 0.05,
-      })
-        .from(
-          ".hero-line-2",
-          {
-            y: 35,
-            opacity: 0,
-            duration: 0.9,
-          },
-          "-=0.7"
-        )
-        .from(
-          ".hero-subtitle",
-          {
-            y: 20,
-            opacity: 0,
-            duration: 0.7,
-          },
-          "-=0.5"
-        )
-        .from(
-          ".hero-scroll",
-          {
-            opacity: 0,
-            y: 10,
-            duration: 0.6,
-          },
-          "-=0.4"
-        );
-    },
-    { scope: containerRef }
-  );
-
   return (
     <section
-      ref={containerRef}
       aria-label="Apresentação Previare"
       className="relative w-full min-h-screen flex flex-col justify-between overflow-hidden bg-transparent select-none pt-24 md:pt-32 pb-8 px-6 sm:px-10 md:px-16"
     >

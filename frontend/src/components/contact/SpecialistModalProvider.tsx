@@ -1,8 +1,15 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import SpecialistModal from './SpecialistModal';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { ContactSubject } from '@/lib/specialistContact';
+
+// O modal (formulário, validações, animações) fica fora do bundle inicial:
+// o chunk é baixado na intenção de uso (hover/foco/toque num CTA) ou no clique.
+const loadSpecialistModal = () => import('./SpecialistModal');
+const SpecialistModal = dynamic(loadSpecialistModal, { ssr: false });
+
+const CTA_SELECTOR = 'a[href="#contato"], [data-specialist-cta]';
 
 export interface OpenSpecialistModalOptions {
   /** Assunto pré-selecionado (ex.: CTA de um serviço específico). */
@@ -25,10 +32,27 @@ export function SpecialistModalProvider({ children }: { children: React.ReactNod
   const [options, setOptions] = useState<OpenSpecialistModalOptions>({});
   // Nova chave a cada abertura: o formulário sempre inicia limpo com as opções recebidas.
   const [session, setSession] = useState(0);
+  // O modal só é montado (e seu chunk carregado) após a primeira abertura
+  const [hasOpened, setHasOpened] = useState(false);
+
+  // Pré-carrega o chunk do modal quando o usuário demonstra intenção num CTA
+  useEffect(() => {
+    const handleIntent = (e: Event) => {
+      if (!(e.target instanceof Element) || !e.target.closest(CTA_SELECTOR)) return;
+      void loadSpecialistModal();
+      removeListeners();
+    };
+    const events = ['pointerover', 'focusin', 'touchstart'] as const;
+    const removeListeners = () =>
+      events.forEach((type) => document.removeEventListener(type, handleIntent));
+    events.forEach((type) => document.addEventListener(type, handleIntent, { passive: true }));
+    return removeListeners;
+  }, []);
 
   const openSpecialistModal = useCallback((opts: OpenSpecialistModalOptions = {}) => {
     setOptions(opts);
     setSession((s) => s + 1);
+    setHasOpened(true);
     setIsOpen(true);
   }, []);
 
@@ -42,14 +66,16 @@ export function SpecialistModalProvider({ children }: { children: React.ReactNod
   return (
     <SpecialistModalContext.Provider value={value}>
       {children}
-      <SpecialistModal
-        key={session}
-        isOpen={isOpen}
-        onClose={closeSpecialistModal}
-        initialSubject={options.subject}
-        initialMessage={options.message}
-        origin={options.origin}
-      />
+      {hasOpened && (
+        <SpecialistModal
+          key={session}
+          isOpen={isOpen}
+          onClose={closeSpecialistModal}
+          initialSubject={options.subject}
+          initialMessage={options.message}
+          origin={options.origin}
+        />
+      )}
     </SpecialistModalContext.Provider>
   );
 }

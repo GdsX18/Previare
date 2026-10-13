@@ -47,6 +47,7 @@ export default function SpecialistButton({
 
       {/* Texto: recuo elegante de 2px no hover */}
       <motion.span
+        initial={false}
         animate={{ x: isHovered ? -2 : 0 }}
         transition={SPRING}
         className="relative z-10 text-xs font-sans font-medium tracking-[0.15em] uppercase whitespace-nowrap text-white/95 group-hover:text-white transition-colors"

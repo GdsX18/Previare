@@ -1,8 +1,15 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { gsap, ScrollTrigger, useGSAP } from '@/lib/gsap';
-import LiquidMetalBackground from '@/components/canvas/LiquidMetalBackground';
+import React, { useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
+import { deferScrollSetup, type Gsap } from '@/lib/gsap';
+import { LiquidMetalFallback } from '@/components/canvas/fallbacks';
+
+// Shader WebGL carregado sob demanda (fora do bundle inicial e do SSR)
+const LiquidMetalBackground = dynamic(() => import('@/components/canvas/LiquidMetalBackground'), {
+  ssr: false,
+  loading: () => <LiquidMetalFallback />,
+});
 
 interface Differential {
   title: string;
@@ -53,55 +60,63 @@ export default function DifferentialsSection() {
   const containerRef = useRef<HTMLElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
 
-  useGSAP(
-    () => {
-      // 1. Linha Contínua em SVG acompanhando o scroll
-      const path = pathRef.current;
-      if (path && containerRef.current) {
-        const length = path.getTotalLength();
-        gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
-        gsap.to(path, {
-          strokeDashoffset: 0,
+  function setupScroll(gsap: Gsap) {
+    // 1. Linha Contínua em SVG acompanhando o scroll
+    const path = pathRef.current;
+    if (path && containerRef.current) {
+      const length = path.getTotalLength();
+      gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
+      gsap.to(path, {
+        strokeDashoffset: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top 20%',
+          end: 'bottom 90%',
+          scrub: 1.2,
+        },
+      });
+    }
+
+    // 2. Efeito "Scroll to Reveal" (Frase por Frase com Scrub estilo Apple/Linear)
+    const revealBlocks = gsap.utils.toArray<HTMLElement>('.reveal-text-block');
+    revealBlocks.forEach((block) => {
+      const spans = block.querySelectorAll<HTMLSpanElement>('.reveal-span');
+      gsap.fromTo(
+        spans,
+        { opacity: 0.18, color: '#555555' },
+        {
+          opacity: 1,
+          color: '#FFFFFF',
+          stagger: 0.35,
           ease: 'none',
           scrollTrigger: {
-            trigger: containerRef.current,
-            start: 'top 20%',
-            end: 'bottom 90%',
-            scrub: 1.2,
+            trigger: block,
+            start: 'top 75%',
+            end: 'bottom 40%',
+            scrub: 0.8,
           },
-        });
-      }
+        }
+      );
+    });
+  }
 
-      // 2. Efeito "Scroll to Reveal" (Frase por Frase com Scrub estilo Apple/Linear)
-      const revealBlocks = gsap.utils.toArray<HTMLElement>('.reveal-text-block');
-      revealBlocks.forEach((block) => {
-        const spans = block.querySelectorAll<HTMLSpanElement>('.reveal-span');
-        gsap.fromTo(
-          spans,
-          { opacity: 0.18, color: '#555555' },
-          {
-            opacity: 1,
-            color: '#FFFFFF',
-            stagger: 0.35,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: block,
-              start: 'top 75%',
-              end: 'bottom 40%',
-              scrub: 0.8,
-            },
-          }
-        );
-      });
-    },
-    { scope: containerRef }
+  // Setup diferido para após a hidratação (prioriza FCP/LCP), com GSAP
+  // carregado sob demanda; o contexto reverte tudo ao desmontar.
+  useEffect(
+    () =>
+      deferScrollSetup(({ gsap }) => {
+        const ctx = gsap.context(() => setupScroll(gsap), containerRef.current ?? undefined);
+        return () => ctx.revert();
+      }),
+    []
   );
 
   return (
     <section
       ref={containerRef}
       id="diferenciais"
-      className="relative w-full py-36 sm:py-56 overflow-hidden bg-[#030F0A] text-white select-none"
+      className="relative w-full py-36 sm:py-56 overflow-clip bg-[#030F0A] text-white select-none"
     >
       {/* Shader WebGL Liquid Metal de Fundo */}
       <LiquidMetalBackground />
@@ -161,7 +176,7 @@ export default function DifferentialsSection() {
             {DIFFERENTIALS[0].phrases.map((phrase, pIdx) => (
               <span
                 key={pIdx}
-                className="reveal-span inline mr-2 transition-colors duration-200"
+                className="reveal-span inline mr-2"
               >
                 {phrase}{' '}
               </span>
@@ -183,7 +198,7 @@ export default function DifferentialsSection() {
             {DIFFERENTIALS[1].phrases.map((phrase, pIdx) => (
               <span
                 key={pIdx}
-                className="reveal-span inline mr-2 transition-colors duration-200"
+                className="reveal-span inline mr-2"
               >
                 {phrase}{' '}
               </span>
@@ -205,7 +220,7 @@ export default function DifferentialsSection() {
             {DIFFERENTIALS[2].phrases.map((phrase, pIdx) => (
               <span
                 key={pIdx}
-                className="reveal-span inline mr-2 transition-colors duration-200"
+                className="reveal-span inline mr-2"
               >
                 {phrase}{' '}
               </span>
@@ -227,7 +242,7 @@ export default function DifferentialsSection() {
             {DIFFERENTIALS[3].phrases.map((phrase, pIdx) => (
               <span
                 key={pIdx}
-                className="reveal-span inline mr-2 transition-colors duration-200"
+                className="reveal-span inline mr-2"
               >
                 {phrase}{' '}
               </span>

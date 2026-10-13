@@ -50,3 +50,58 @@ body {
   background-color: #7CE577;
   color: #03120E;
 }
+
+/*
+ * Intro do Hero em CSS puro (mesma coreografia da timeline GSAP original:
+ * ease power3.out, durações e offsets idênticos). Roda no compositor a partir
+ * da primeira pintura, sem esperar a hidratação do JavaScript e sem leituras
+ * de getComputedStyle durante o commit do React.
+ *   linha 1:   início 0.05s, 0.9s, y 35px
+ *   linha 2:   início 0.25s ("-=0.7"), 0.9s, y 35px
+ *   subtítulo: início 0.65s ("-=0.5"), 0.7s, y 20px
+ *   scroll:    início 0.95s ("-=0.4"), 0.6s, y 10px
+ */
+@keyframes hero-intro {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--hero-intro-y), 0);
+  }
+  to {
+    opacity: 1;
+    /* none (e não translate3d) libera a camada de GPU ao fim da intro */
+    transform: none;
+  }
+}
+
+.hero-line-1,
+.hero-line-2,
+.hero-subtitle,
+.hero-scroll {
+  animation-name: hero-intro;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation-fill-mode: both;
+}
+
+.hero-line-1 {
+  --hero-intro-y: 35px;
+  animation-duration: 0.9s;
+  animation-delay: 0.05s;
+}
+
+.hero-line-2 {
+  --hero-intro-y: 35px;
+  animation-duration: 0.9s;
+  animation-delay: 0.25s;
+}
+
+.hero-subtitle {
+  --hero-intro-y: 20px;
+  animation-duration: 0.7s;
+  animation-delay: 0.65s;
+}
+
+.hero-scroll {
+  --hero-intro-y: 10px;
+  animation-duration: 0.6s;
+  animation-delay: 0.95s;
+}

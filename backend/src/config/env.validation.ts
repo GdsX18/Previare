@@ -1,9 +1,11 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Type } from 'class-transformer';
 import {
   IsEnum,
-  IsNumber,
+  IsInt,
+  IsNotEmpty,
   IsString,
   IsUrl,
+  Matches,
   Min,
   validateSync,
 } from 'class-validator';
@@ -18,21 +20,30 @@ class EnvironmentVariables {
   @IsEnum(Environment)
   NODE_ENV: Environment = Environment.Development;
 
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   PORT: number = 3001;
 
-  @IsUrl({ require_tld: false })
+  // @IsUrl() only accepts http/https/ftp by default, so it rejects postgresql:// URLs
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^postgres(ql)?:\/\//, {
+    message: 'DATABASE_URL must start with postgresql:// or postgres://',
+  })
   DATABASE_URL!: string;
 
   @IsUrl({ require_tld: false })
   FRONTEND_URL: string = 'http://localhost:3000';
 
-  @IsNumber()
+  // @nestjs/throttler v6 expects ttl in milliseconds
+  @Type(() => Number)
+  @IsInt()
   @Min(0)
   THROTTLE_TTL: number = 60000;
 
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @Min(0)
   THROTTLE_LIMIT: number = 100;
 }
@@ -40,21 +51,15 @@ class EnvironmentVariables {
 export type Env = EnvironmentVariables;
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
-  // Coerce numeric strings to numbers before validation
-  const coerced = {
-    ...config,
-    PORT: config['PORT'] !== undefined ? Number(config['PORT']) : undefined,
-    THROTTLE_TTL:
-      config['THROTTLE_TTL'] !== undefined
-        ? Number(config['THROTTLE_TTL'])
-        : undefined,
-    THROTTLE_LIMIT:
-      config['THROTTLE_LIMIT'] !== undefined
-        ? Number(config['THROTTLE_LIMIT'])
-        : undefined,
-  };
+  // Drop unset/blank values so the class defaults apply instead of being
+  // overwritten with undefined (or coerced to 0 / NaN)
+  const provided = Object.fromEntries(
+    Object.entries(config).filter(
+      ([, value]) => value !== undefined && value !== '',
+    ),
+  );
 
-  const validated = plainToInstance(EnvironmentVariables, coerced, {
+  const validated = plainToInstance(EnvironmentVariables, provided, {
     enableImplicitConversion: true,
   });
 
