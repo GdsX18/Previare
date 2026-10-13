@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MenuDrawer from './MenuDrawer';
 import SpecialistButton from '@/components/ui/SpecialistButton';
@@ -17,6 +18,8 @@ const NAV_LINKS = [
   { label: 'Próximo Passo', href: '#proximo-passo' },
 ];
 
+const BLOG_LINK = { label: 'Blog', href: '/blog' };
+
 export function Navbar() {
   const [isVisible, setIsVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -24,6 +27,10 @@ export function Navbar() {
   const lastScrollY = useRef(0);
   const isNavigating = useRef(false);
   const { openSpecialistModal } = useSpecialistModal();
+  const pathname = usePathname();
+  const router = useRouter();
+  const isHome = pathname === '/';
+  const isBlogActive = pathname === BLOG_LINK.href || pathname.startsWith(`${BLOG_LINK.href}/`);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,6 +57,13 @@ export function Navbar() {
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+
+    // Fora da home as seções não existem no DOM: navega para a home já na âncora
+    if (!isHome && (href === '/' || !document.getElementById(href.slice(1)))) {
+      router.push(href === '/' ? '/' : `/${href}`);
+      return;
+    }
+
     isNavigating.current = true;
     setIsVisible(true);
 
@@ -124,6 +138,23 @@ export function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              href={BLOG_LINK.href}
+              aria-current={isBlogActive ? 'page' : undefined}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors py-2.5 px-2.5 rounded-md cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 ${
+                isBlogActive
+                  ? 'text-white bg-white/[0.06]'
+                  : 'text-white/75 hover:text-white hover:bg-white/[0.05]'
+              }`}
+            >
+              {BLOG_LINK.label}
+              {isBlogActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-1/2 -bottom-0.5 h-1 w-1 -translate-x-1/2 rounded-full bg-[#7CE577]"
+                />
+              )}
+            </Link>
           </nav>
 
           {/* Lado Direito Desktop: Botão de Ação */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, X } from "lucide-react";
 import { scrollToSection } from "@/lib/smoothScroll";
@@ -15,6 +15,7 @@ const MENU_LINKS = [
   { label: "HOME", href: "/" },
   { label: "SOBRE", href: "#sobre" },
   { label: "SOLUÇÕES", href: "#servicos" },
+  { label: "BLOG", href: "/blog" },
   { label: "SIMULADOR", href: "#simulador" },
   { label: "DIFERENCIAIS", href: "#diferenciais" },
   { label: "PRÓXIMO PASSO", href: "#proximo-passo" },
@@ -22,6 +23,23 @@ const MENU_LINKS = [
 ];
 
 export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Rotas ("/blog") e âncoras fora da home navegam; âncoras na home rolam suavemente
+  const navigate = (href: string) => {
+    onClose();
+    if (href.startsWith("/") && href !== "/") {
+      router.push(href);
+    } else if (pathname !== "/" && (href === "/" || !document.getElementById(href.slice(1)))) {
+      router.push(href === "/" ? "/" : `/${href}`);
+    } else {
+      setTimeout(() => {
+        scrollToSection(href, { offset: 85 });
+      }, 120);
+    }
+  };
+
   // Lock body scroll and handle Escape key
   // Só toca no body enquanto aberto, para não desfazer o bloqueio de outro overlay (ex.: modal de atendimento)
   useEffect(() => {
@@ -82,23 +100,26 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
 
             {/* Links Principais: Tipografia Serif Monumental */}
             <nav className="my-auto py-12 flex flex-col space-y-6 md:space-y-8" aria-label="Links do Menu">
-              {MENU_LINKS.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onClose();
-                    setTimeout(() => {
-                      scrollToSection(link.href, { offset: 85 });
-                    }, 120);
-                  }}
-                  className="group flex items-center justify-between text-4xl sm:text-5xl md:text-6xl font-serif font-light text-white/90 hover:text-white hover:translate-x-2 transition-all cursor-pointer tracking-tight"
-                >
-                  <span>{link.label}</span>
-                  <ArrowUpRight className="w-6 h-6 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#7CE577]" />
-                </a>
-              ))}
+              {MENU_LINKS.map((link) => {
+                const isActive = link.href.startsWith("/") && link.href !== "/" && pathname.startsWith(link.href);
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(link.href);
+                    }}
+                    className={`group flex items-center justify-between text-4xl sm:text-5xl md:text-6xl font-serif font-light hover:text-white hover:translate-x-2 transition-all cursor-pointer tracking-tight ${
+                      isActive ? "text-[#7CE577]" : "text-white/90"
+                    }`}
+                  >
+                    <span>{link.label}</span>
+                    <ArrowUpRight className={`w-6 h-6 transition-all text-[#7CE577] ${isActive ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"}`} />
+                  </a>
+                );
+              })}
             </nav>
 
             {/* Rodapé da Gaveta: Links Institucionais Minimalistas */}
@@ -108,10 +129,7 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                   href="#contato"
                   onClick={(e) => {
                     e.preventDefault();
-                    onClose();
-                    setTimeout(() => {
-                      scrollToSection('#contato', { offset: 85 });
-                    }, 120);
+                    navigate("#contato");
                   }}
                   className="hover:text-white transition-colors cursor-pointer"
                 >
@@ -121,10 +139,7 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                   href="#contato"
                   onClick={(e) => {
                     e.preventDefault();
-                    onClose();
-                    setTimeout(() => {
-                      scrollToSection('#contato', { offset: 85 });
-                    }, 120);
+                    navigate("#contato");
                   }}
                   className="hover:text-white transition-colors cursor-pointer"
                 >

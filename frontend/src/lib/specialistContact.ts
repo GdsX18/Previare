@@ -12,7 +12,13 @@ export const CONTACT_SUBJECTS = [
   'Outro Assunto Previdenciário',
 ] as const;
 
+/** Assunto do formulário de diagnóstico do rodapé (não aparece como opção no modal). */
+export const FOOTER_DIAGNOSTIC_SUBJECT = 'Diagnóstico Previdenciário (Rodapé)';
+
 export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
+
+/** Assuntos aceitos pela rota /api/contato (modal + rodapé). */
+export type ContactPayloadSubject = ContactSubject | typeof FOOTER_DIAGNOSTIC_SUBJECT;
 
 export const CONTACT_LIMITS = {
   name: 120,
@@ -21,15 +27,25 @@ export const CONTACT_LIMITS = {
   phoneDigitsMax: 11,
   message: 1500,
   origin: 80,
+  details: 10,
+  detailLabel: 60,
+  detailValue: 500,
 } as const;
 
+/** Informação complementar exibida no e-mail (ex.: "Momento profissional"). */
+export interface ContactDetail {
+  label: string;
+  value: string;
+}
+
 export interface SpecialistContactPayload {
-  subject: ContactSubject;
+  subject: ContactPayloadSubject;
   name: string;
   email: string;
   phone: string;
   message?: string;
   origin?: string;
+  details?: ContactDetail[];
   /** Honeypot anti-spam: deve chegar sempre vazio. */
   website?: string;
 }
@@ -42,6 +58,10 @@ export function onlyDigits(value: string): string {
 
 export function isContactSubject(value: unknown): value is ContactSubject {
   return typeof value === 'string' && (CONTACT_SUBJECTS as readonly string[]).includes(value);
+}
+
+export function isContactPayloadSubject(value: unknown): value is ContactPayloadSubject {
+  return value === FOOTER_DIAGNOSTIC_SUBJECT || isContactSubject(value);
 }
 
 /** Formata progressivamente um telefone brasileiro: (11) 91234-5678 / (11) 1234-5678. */

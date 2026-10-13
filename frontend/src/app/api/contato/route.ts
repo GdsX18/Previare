@@ -1,42 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import nodemailer from "nodemailer";
 import {
   CONTACT_LIMITS,
   EMAIL_PATTERN,
-  isContactSubject,
+  isContactPayloadSubject,
   onlyDigits,
+  type ContactDetail,
   type SpecialistContactPayload,
 } from "@/lib/specialistContact";
+import {
+  clientIp,
+  escapeHtml,
+  isRateLimited,
+  sendSiteEmail,
+  singleLine,
+} from "@/lib/server/siteMail";
 
 export const runtime = "nodejs";
-
-// ── Rate limit simples em memória (por instância) ──────────────────────────
-const RATE_WINDOW_MS = 10 * 60 * 1000;
-const RATE_MAX_REQUESTS = 5;
-const hits = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  if (hits.size > 5000) hits.clear();
-  return recent.length > RATE_MAX_REQUESTS;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/** Remove quebras de linha para uso seguro em cabeçalhos de e-mail (assunto). */
-function singleLine(value: string): string {
-  return value.replace(/[\r\n]+/g, " ").trim();
-}
 
 type ValidationResult =
   | { ok: true; data: Required<Omit<SpecialistContactPayload, "website">> }
@@ -49,7 +28,7 @@ function validate(body: unknown): ValidationResult {
   const input = body as Record<string, unknown>;
   const str = (key: string) => (typeof input[key] === "string" ? (input[key] as string).trim() : "");
 
-  if (!isContactSubject(input.subject)) {
+  if (!isContactPayloadSubject(input.subject)) {
     return { ok: false, error: "Selecione o assunto do atendimento." };
   }
 
@@ -74,9 +53,20 @@ function validate(body: unknown): ValidationResult {
   const message = str("message").slice(0, CONTACT_LIMITS.message);
   const origin = singleLine(str("origin")).slice(0, CONTACT_LIMITS.origin) || "Site";
 
+  const details: ContactDetail[] = (Array.isArray(input.details) ? input.details : [])
+    .slice(0, CONTACT_LIMITS.details)
+    .flatMap((item: unknown) => {
+      if (typeof item !== "object" || item === null) return [];
+      const { label, value } = item as Record<string, unknown>;
+      if (typeof label !== "string" || typeof value !== "string") return [];
+      const l = singleLine(label).slice(0, CONTACT_LIMITS.detailLabel);
+      const v = value.trim().slice(0, CONTACT_LIMITS.detailValue);
+      return l && v ? [{ label: l, value: v }] : [];
+    });
+
   return {
     ok: true,
-    data: { subject: input.subject, name, email, phone: str("phone"), message, origin },
+    data: { subject: input.subject, name, email, phone: str("phone"), message, origin, details },
   };
 }
 
@@ -98,6 +88,7 @@ function buildEmail(data: Required<Omit<SpecialistContactPayload, "website">>) {
     `WhatsApp direto: ${whatsappUrl}`,
     `E-mail: ${data.email}`,
     `Origem no site: ${data.origin}`,
+    ...data.details.map((d) => `${d.label}: ${d.value}`),
     `Recebido em: ${receivedAt}`,
     "",
     "Relato do caso:",
@@ -123,6 +114,7 @@ function buildEmail(data: Required<Omit<SpecialistContactPayload, "website">>) {
           ${row("Telefone / WhatsApp", `${escapeHtml(data.phone)} &nbsp;<a href="${escapeHtml(whatsappUrl)}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-size:12px;padding:4px 10px;border-radius:999px;">Abrir WhatsApp</a>`)}
           ${row("E-mail", `<a href="mailto:${escapeHtml(data.email)}" style="color:#2F7335;">${escapeHtml(data.email)}</a>`)}
           ${row("Origem no site", escapeHtml(data.origin))}
+          ${data.details.map((d) => row(escapeHtml(d.label), escapeHtml(d.value))).join("")}
           ${row("Recebido em", escapeHtml(receivedAt))}
         </table>
         <div style="margin-top:20px;padding:18px 20px;background:#F4F8F4;border-radius:14px;border:1px solid #E0ECE1;">
@@ -140,12 +132,7 @@ function buildEmail(data: Required<Omit<SpecialistContactPayload, "website">>) {
 }
 
 export async function POST(request: NextRequest) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
-
-  if (isRateLimited(ip)) {
+  if (isRateLimited(clientIp(request.headers))) {
     return NextResponse.json(
       { ok: false, error: "Muitas solicitações em sequência. Tente novamente em alguns minutos." },
       { status: 429 }
@@ -169,46 +156,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 422 });
   }
 
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL } =
-    process.env;
   const email = buildEmail(result.data);
-
-  if (!SMTP_HOST || !CONTACT_TO_EMAIL) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[api/contato] SMTP não configurado — e-mail não enviado (modo dev):\n" + email.text);
-      return NextResponse.json({ ok: true, delivered: false });
-    }
-    console.error("[api/contato] SMTP_HOST/CONTACT_TO_EMAIL ausentes.");
-    return NextResponse.json(
-      { ok: false, error: "Canal temporariamente indisponível." },
-      { status: 503 }
-    );
-  }
-
-  const port = Number(SMTP_PORT) || 587;
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port,
-    secure: port === 465,
-    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-  });
-
-  try {
-    await transporter.sendMail({
-      from: `"Previare · Site" <${CONTACT_FROM_EMAIL || SMTP_USER || CONTACT_TO_EMAIL}>`,
-      to: CONTACT_TO_EMAIL,
+  const sent = await sendSiteEmail(
+    {
+      ...email,
       replyTo: `"${result.data.name.replace(/"/g, "")}" <${result.data.email}>`,
-      subject: email.subject,
-      text: email.text,
-      html: email.html,
-    });
-  } catch (error) {
-    console.error("[api/contato] Falha no envio SMTP:", error);
-    return NextResponse.json(
-      { ok: false, error: "Não foi possível encaminhar sua solicitação agora." },
-      { status: 502 }
-    );
-  }
+    },
+    "api/contato"
+  );
 
-  return NextResponse.json({ ok: true, delivered: true });
+  if (!sent.ok) {
+    return NextResponse.json({ ok: false, error: sent.error }, { status: sent.status });
+  }
+  return NextResponse.json({ ok: true, delivered: sent.delivered });
 }

@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Check, CheckCircle2 } from 'lucide-react';
 import { scrollToSection } from '@/lib/smoothScroll';
+import { FOOTER_DIAGNOSTIC_SUBJECT } from '@/lib/specialistContact';
 
 export default function Footer() {
   const [formData, setFormData] = useState({
@@ -19,8 +21,10 @@ export default function Footer() {
     privacyAgreed: false,
   });
 
+  const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleServiceToggle = (service: string) => {
     setFormData((prev) => ({
@@ -39,24 +43,37 @@ export default function Footer() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      await fetch(`${apiUrl}/leads`, {
+      const res = await fetch('/api/contato', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          subject: FOOTER_DIAGNOSTIC_SUBJECT,
           name: formData.name.trim(),
           email: formData.email.trim(),
           phone: formData.phone.trim(),
+          message: formData.message.trim(),
+          origin: 'Rodapé · Formulário de Diagnóstico',
+          details: [
+            { label: 'Momento profissional', value: formData.careerStage },
+            { label: 'Serviços de interesse', value: formData.services.join(', ') || 'Nenhum selecionado' },
+            { label: 'Como conheceu a Previare', value: formData.source },
+            { label: 'Sessão de alinhamento', value: formData.scheduleSession ? 'Deseja agendar' : 'Não solicitada' },
+          ],
         }),
-      }).catch(() => {
-        // Fallback silencioso para continuidade do fluxo
       });
-    } catch {
-      // Sem interrupção de fluxo para o usuário
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Não foi possível enviar sua mensagem agora.');
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Não foi possível enviar sua mensagem agora.'
+      );
     } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
     }
   };
 
@@ -73,12 +90,18 @@ export default function Footer() {
       privacyAgreed: false,
     });
     setSubmitted(false);
+    setSubmitError(null);
   };
 
   const handleFooterNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
-      scrollToSection(href, { offset: 85 });
+      // Em rotas internas (ex.: /blog) a seção pode não existir: volta à home na âncora
+      if (document.getElementById(href.slice(1))) {
+        scrollToSection(href, { offset: 85 });
+      } else {
+        router.push(`/${href}`);
+      }
     }
   };
 
@@ -470,7 +493,12 @@ export default function Footer() {
                   </div>
 
                   {/* Botão de Envio (Estilo IWC Minimalista) */}
-                  <div className="pt-6">
+                  <div className="pt-6 space-y-4">
+                    {submitError && (
+                      <p role="alert" className="text-xs text-[#F4B4A4]">
+                        {submitError}
+                      </p>
+                    )}
                     <button
                       type="submit"
                       disabled={isSubmitting}
